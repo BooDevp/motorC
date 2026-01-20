@@ -18,6 +18,6 @@ typedef struct
 Modelo *get_modelo_obj(Arena *arena, const char *ruta);
 void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COOLDOWN_BOTON, Arena *arena);
 void normalizacion_objeto_centrar(Modelo *f);
-void imprimir_info_modelo(Modelo *f);
+void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala);
 
 #endif

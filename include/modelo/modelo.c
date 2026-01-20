@@ -202,25 +202,50 @@ void normalizacion_objeto_centrar(Modelo *f)
     }
 }
 
-void imprimir_info_modelo(Modelo *f)
+void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
 {
-    if (f == NULL)
+    if (f != NULL && f->vertices != NULL && f->aristas != NULL)
     {
-        printf("--- Info Modelo: NULL ---\n");
-        return;
-    }
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        for (int i = 0; i < f->n_aristas; i++)
+        {
+            int idx_a = f->aristas[i * 2];     // Punto Inicio
+            int idx_b = f->aristas[i * 2 + 1]; // Punto FInal
 
-    printf("--- Info Modelo ---\n");
-    printf("Direccion en RAM: %p\n", (void *)f);
-    printf("Vertices: %d (En RAM: %p)\n", f->n_puntos, (void *)f->vertices);
-    printf("Aristas:  %d (En RAM: %p)\n", f->n_aristas, (void *)f->aristas);
-    printf("Centro:   (%.2f, %.2f, %.2f)\n", f->cx, f->cy, f->cz);
+            // Verificamos que los índices sean válidos para evitar crashes
+            if (idx_a >= f->n_puntos || idx_b >= f->n_puntos)
+                continue;
 
-    // Si quieres ver los primeros 3 vértices (X, Y, Z)
-    if (f->n_puntos > 0)
-    {
-        printf("Primer vertice: X:%.2f Y:%.2f Z:%.2f\n",
-               f->vertices[0], f->vertices[1], f->vertices[2]);
+            float vx0 = f->vertices[idx_a * 3];     // X
+            float vy0 = f->vertices[idx_a * 3 + 1]; // Y
+            float vz0 = f->vertices[idx_a * 3 + 2]; // Z
+
+            float vx1 = f->vertices[idx_b * 3];     // X
+            float vy1 = f->vertices[idx_b * 3 + 1]; // Y
+            float vz1 = f->vertices[idx_b * 3 + 2]; // Z
+
+            // CENTRAR
+            vx0 -= f->cx;
+            vy0 -= f->cy;
+            vz0 -= f->cz;
+            vx1 -= f->cx;
+            vy1 -= f->cy;
+            vz1 -= f->cz;
+
+            // Rotar punto sobre eje
+            rotar_punto(&vx0, &vy0, &vz0, angulo, 'y');
+            rotar_punto(&vx1, &vy1, &vz1, angulo, 'y');
+
+            // Alejar de la cámara
+            vz0 += distancia_camara;
+            vz1 += distancia_camara;
+
+            float px0, py0, px1, py1;
+            proyectar_a_pixel(vx0, vy0, vz0, escala, escala, &px0, &py0, ventana_ancho, ventana_alto);
+            proyectar_a_pixel(vx1, vy1, vz1, escala, escala, &px1, &py1, ventana_ancho, ventana_alto);
+
+            // ¡Dibujar línea real de píxeles!
+            SDL_RenderLine(renderer, px0, py0, px1, py1);
+        }
     }
-    printf("-------------------\n");
 }

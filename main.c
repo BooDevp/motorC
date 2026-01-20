@@ -164,50 +164,7 @@ int main(int argc, char *argv[])
         SDL_RenderClear(renderer);
 
         // Dibujamos la figura
-        if (modelo_actual != NULL && modelo_actual->vertices != NULL && modelo_actual->aristas != NULL)
-        {
-            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-            for (int i = 0; i < modelo_actual->n_aristas; i++)
-            {
-                int idx_a = modelo_actual->aristas[i * 2];     // Punto Inicio
-                int idx_b = modelo_actual->aristas[i * 2 + 1]; // Punto FInal
-
-                // Verificamos que los índices sean válidos para evitar crashes
-                if (idx_a >= modelo_actual->n_puntos || idx_b >= modelo_actual->n_puntos)
-                    continue;
-
-                float vx0 = modelo_actual->vertices[idx_a * 3];     // X
-                float vy0 = modelo_actual->vertices[idx_a * 3 + 1]; // Y
-                float vz0 = modelo_actual->vertices[idx_a * 3 + 2]; // Z
-
-                float vx1 = modelo_actual->vertices[idx_b * 3];     // X
-                float vy1 = modelo_actual->vertices[idx_b * 3 + 1]; // Y
-                float vz1 = modelo_actual->vertices[idx_b * 3 + 2]; // Z
-
-                // CENTRAR
-                vx0 -= modelo_actual->cx;
-                vy0 -= modelo_actual->cy;
-                vz0 -= modelo_actual->cz;
-                vx1 -= modelo_actual->cx;
-                vy1 -= modelo_actual->cy;
-                vz1 -= modelo_actual->cz;
-
-                // Rotar punto sobre eje
-                rotar_punto(&vx0, &vy0, &vz0, angulo, 'y');
-                rotar_punto(&vx1, &vy1, &vz1, angulo, 'y');
-
-                // Alejar de la cámara
-                vz0 += DISTANCIA_CAMARA;
-                vz1 += DISTANCIA_CAMARA;
-
-                float px0, py0, px1, py1;
-                proyectar_a_pixel(vx0, vy0, vz0, escala, escala, &px0, &py0, VENTANA_ANCHO, VENTANA_ALTO);
-                proyectar_a_pixel(vx1, vy1, vz1, escala, escala, &px1, &py1, VENTANA_ANCHO, VENTANA_ALTO);
-
-                // ¡Dibujar línea real de píxeles!
-                SDL_RenderLine(renderer, px0, py0, px1, py1);
-            }
-        }
+        pintar_modelo(modelo_actual, renderer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
 
         // Dibujamos el texto en pantalla
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
