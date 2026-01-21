@@ -36,16 +36,16 @@ void *arena_push(Arena *a, size_t size_perdido)
 {
     // Alinear a 8 bytes es un truco para que la CPU lea más rápido
     size_t alineado = (size_perdido + 7) & ~7;
-
+    
     if (a->usado + alineado <= a->capacidad)
     {
         void *puntero = a->base + a->usado;
         a->usado += alineado;
+        printf("Pedido: %zu bytes | Disponible: %zu bytes\n", alineado, a->capacidad - a->usado);
         return puntero;
     }
 
     printf("!!! ERROR: Arena sin espacio !!!\n");
-    printf("Pedido: %zu bytes | Disponible: %zu bytes\n", alineado, a->capacidad - a->usado);
     return NULL;
 }
 
