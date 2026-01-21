@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
         SDL_RenderClear(renderer);
 
         // Dibujamos la figura
-        pintar_modelo(modelo_actual, renderer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
+        pintar_modelo_lineal(modelo_actual, renderer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
 
         // Dibujamos el texto en pantalla
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);

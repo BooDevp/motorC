@@ -25,27 +25,3 @@ char *trim_vacio(char *s)
         s++;
     return s;
 }
-
-// Info
-void imprimir_info_modelo(Modelo *f)
-{
-    if (f == NULL)
-    {
-        printf("--- Info Modelo: NULL ---\n");
-        return;
-    }
-
-    printf("--- Info Modelo ---\n");
-    printf("Direccion en RAM: %p\n", (void *)f);
-    printf("Vertices: %d (En RAM: %p)\n", f->n_puntos, (void *)f->vertices);
-    printf("Aristas:  %d (En RAM: %p)\n", f->n_aristas, (void *)f->aristas);
-    printf("Centro:   (%.2f, %.2f, %.2f)\n", f->cx, f->cy, f->cz);
-
-    // Si quieres ver los primeros 3 vértices (X, Y, Z)
-    if (f->n_puntos > 0)
-    {
-        printf("Primer vertice: X:%.2f Y:%.2f Z:%.2f\n",
-               f->vertices[0], f->vertices[1], f->vertices[2]);
-    }
-    printf("-------------------\n");
-}

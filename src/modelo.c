@@ -1,6 +1,30 @@
 #include "modelo.h"
 #include <ctype.h>
 
+// Info
+void imprimir_info_modelo(Modelo *f)
+{
+    if (f == NULL)
+    {
+        printf("--- Info Modelo: NULL ---\n");
+        return;
+    }
+
+    printf("--- Info Modelo ---\n");
+    printf("Direccion en RAM: %p\n", (void *)f);
+    printf("Vertices: %d (En RAM: %p)\n", f->n_puntos, (void *)f->vertices);
+    printf("Aristas:  %d (En RAM: %p)\n", f->n_aristas, (void *)f->aristas);
+    printf("Centro:   (%.2f, %.2f, %.2f)\n", f->cx, f->cy, f->cz);
+
+    // Si quieres ver los primeros 3 vértices (X, Y, Z)
+    if (f->n_puntos > 0)
+    {
+        printf("Primer vertice: X:%.2f Y:%.2f Z:%.2f\n",
+               f->vertices[0], f->vertices[1], f->vertices[2]);
+    }
+    printf("-------------------\n");
+}
+
 static void normalizacion_objeto_centrar(Modelo *f)
 {
     if (f->n_puntos > 0)
@@ -200,7 +224,7 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
     }
 }
 
-void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
+void pintar_modelo_lineal(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
 {
     if (f != NULL && f->vertices != NULL && f->aristas != NULL)
     {
