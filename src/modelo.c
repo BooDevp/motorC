@@ -173,7 +173,7 @@ Modelo *get_modelo_obj(Arena *arena, const char *ruta)
     return f;
 }
 
-void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COOLDOWN_BOTON, Arena *arena)
+void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COOLDOWN_BOTON, Arena *arena, SDL_GPUDevice *gpu)
 {
     Uint64 tiempo_actual = SDL_GetTicks();
 
@@ -192,8 +192,12 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
         Modelo *nuevo = get_modelo_obj(arena, ruta);
         if (nuevo)
         {
-            calcular_centros(nuevo->vertices, nuevo->n_puntos, &nuevo->cx, &nuevo->cy, &nuevo->cz);
+            subir_modelo_a_gpu(gpu, nuevo); // <--- ESTA LÍNEA
             *modelo_actual = nuevo;
+        }
+        else
+        {
+            printf("Error al cargar el modelo: %s\n", ruta);
         }
 
         *ultimo_clic = tiempo_actual;
@@ -359,4 +363,42 @@ void limpiar_zbuffer(float *z_buffer, int ancho, int alto)
     {
         z_buffer[i] = FLT_MAX;
     }
+}
+
+void subir_modelo_a_gpu(SDL_GPUDevice *gpu, Modelo *modelo)
+{
+    if (!gpu || !modelo)
+        return;
+
+    size_t tamano_bytes = modelo->n_puntos * 3 * sizeof(float);
+
+    // 1. Crear Buffer en GPU
+    SDL_GPUBufferCreateInfo buffer_info = {
+        .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
+        .size = tamano_bytes};
+    modelo->vertex_buffer_gpu = SDL_CreateGPUBuffer(gpu, &buffer_info);
+
+    // 2. Crear Buffer de transferencia (puente CPU -> GPU)
+    SDL_GPUTransferBufferCreateInfo transfer_info = {
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+        .size = tamano_bytes};
+    SDL_GPUTransferBuffer *transfer_ptr = SDL_CreateGPUTransferBuffer(gpu, &transfer_info);
+
+    // 3. Mapear y copiar datos de RAM a Transfer Buffer
+    void *map = SDL_MapGPUTransferBuffer(gpu, transfer_ptr, false);
+    memcpy(map, modelo->vertices, tamano_bytes);
+    SDL_UnmapGPUTransferBuffer(gpu, transfer_ptr);
+
+    // 4. Ejecutar la copia en la GPU
+    SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gpu);
+    SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass(cmd);
+
+    SDL_UploadToGPUBuffer(copy_pass, &(SDL_GPUTransferBufferLocation){.transfer_buffer = transfer_ptr, .offset = 0}, &(SDL_GPUBufferRegion){.buffer = modelo->vertex_buffer_gpu, .offset = 0, .size = tamano_bytes}, false);
+
+    SDL_EndGPUCopyPass(copy_pass);
+    SDL_SubmitGPUCommandBuffer(cmd);
+
+    // Liberamos el puente (ya no hace falta)
+    SDL_ReleaseGPUTransferBuffer(gpu, transfer_ptr);
+    SDL_Log("Modelo subido a GPU: %llu bytes", (unsigned long long)tamano_bytes);
 }

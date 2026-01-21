@@ -68,5 +68,5 @@ void accion_cambiar_vsync(void *datos)
 void accion_cargar_modelo(void *datos)
 {
     FunctionCargarModelo *d = (FunctionCargarModelo *)datos;
-    cargar_modelo(d->modelo, d->ultimo_clic, d->COOLDOWN_BOTON, d->arena);
+    cargar_modelo(d->modelo, d->ultimo_clic, d->COOLDOWN_BOTON, d->arena, d->gpu);
 }

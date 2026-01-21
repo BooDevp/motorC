@@ -11,18 +11,24 @@ typedef struct {
 } Cara;
 
 typedef struct {
-    float *vertices;
+    float *vertices;    // Datos en RAM (CPU)
     int n_puntos;    
     Cara *caras;
     int n_caras;    
     float cx, cy, cz;
+
+    // --- NUEVO: Datos en VRAM (GPU) ---
+    SDL_GPUBuffer *vertex_buffer_gpu;
 } Modelo;
 
 Modelo *get_modelo_obj(Arena *arena, const char *ruta);
-void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COOLDOWN_BOTON, Arena *arena);
+void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COOLDOWN_BOTON, Arena *arena, SDL_GPUDevice *gpu);
 void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float *z_buffer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala);
 void imprimir_info_modelo(Modelo *f);
 float* inicializar_zbuffer(Arena *arena, int ancho, int alto);
 void limpiar_zbuffer(float *z_buffer, int ancho, int alto);
+
+// Función para subir los datos a la tarjeta gráfica
+void subir_modelo_a_gpu(SDL_GPUDevice *gpu, Modelo *modelo);
 
 #endif

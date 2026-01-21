@@ -25,3 +25,24 @@ char *trim_vacio(char *s)
         s++;
     return s;
 }
+
+// Función para leer el binario del shader (.spv)
+void *leer_archivo_binario(const char *ruta, size_t *tamano)
+{
+    FILE *archivo = fopen(ruta, "rb");
+    if (!archivo)
+    {
+        printf("No se pudo abrir el shader: %s\n", ruta);
+        return NULL;
+    }
+
+    fseek(archivo, 0, SEEK_END);
+    *tamano = ftell(archivo);
+    fseek(archivo, 0, SEEK_SET);
+
+    void *buffer = malloc(*tamano);
+    fread(buffer, 1, *tamano, archivo);
+    fclose(archivo);
+
+    return buffer;
+}

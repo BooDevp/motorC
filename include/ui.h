@@ -34,6 +34,7 @@ typedef struct
     Uint64 *ultimo_clic;
     const Uint64 COOLDOWN_BOTON;
     Arena *arena;
+    SDL_GPUDevice *gpu;
 } FunctionCargarModelo;
 
 // Acciones de los botones
