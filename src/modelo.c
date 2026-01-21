@@ -199,16 +199,70 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
     }
 }
 
+// Pequeña utilidad para intercambiar valores (swap)
+static void swap_float(float *a, float *b)
+{
+    float temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+static void dibujar_triangulo_relleno(SDL_Renderer *renderer, float x0, float y0, float x1, float y1, float x2, float y2)
+{
+    // 1. Ordenar vértices por Y (y0 <= y1 <= y2)
+    if (y0 > y1) { swap_float(&x0, &x1); swap_float(&y0, &y1); }
+    if (y0 > y2) { swap_float(&x0, &x2); swap_float(&y0, &y2); }
+    if (y1 > y2) { swap_float(&x1, &x2); swap_float(&y1, &y2); }
+
+    // Evitar división por cero si el triángulo no tiene altura
+    float altura_total = y2 - y0;
+    if (altura_total < 0.0001f) return;
+
+    // 2. Cálculo de pendientes inversas (usando floats precisos)
+    float dx02 = (y2 - y0 > 0.0001f) ? (x2 - x0) / (y2 - y0) : 0;
+    float dx01 = (y1 - y0 > 0.0001f) ? (x1 - x0) / (y1 - y0) : 0;
+    float dx12 = (y2 - y1 > 0.0001f) ? (x2 - x1) / (y2 - y1) : 0;
+
+    // 3. Renderizado Scanline
+    // Iteramos solo por los píxeles que realmente están dentro del rango Y
+    int y_min = (int)ceilf(y0);
+    int y_max = (int)floorf(y2);
+
+    for (int y = y_min; y <= y_max; y++)
+    {
+        // xa siempre sigue el lado largo (v0 -> v2)
+        // Calculamos la distancia real desde el float y0 hasta el centro del píxel actual
+        float xa = x0 + (float)(y - y0) * dx02;
+        float xb;
+
+        // Determinamos si estamos en la mitad superior o inferior para xb
+        if (y < y1) {
+            xb = x0 + (float)(y - y0) * dx01;
+        } else {
+            xb = x1 + (float)(y - y1) * dx12;
+        }
+
+        // Convertir a enteros para el dibujo horizontal
+        int ix_a = (int)roundf(xa);
+        int ix_b = (int)roundf(xb);
+
+        // Ordenar X para que SDL_RenderLine no tenga problemas
+        if (ix_a > ix_b) { int t = ix_a; ix_a = ix_b; ix_b = t; }
+
+        // Dibujar la línea horizontal del escaneo
+        SDL_RenderLine(renderer, (float)ix_a, (float)y, (float)ix_b, (float)y);
+    }
+}
+
 void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
 {
-    if (f == NULL || f->vertices == NULL || f->caras == NULL) return;
-
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    if (f == NULL || f->vertices == NULL || f->caras == NULL)
+        return;
 
     for (int i = 0; i < f->n_caras; i++)
     {
-        int idx[3] = { f->caras[i].v1, f->caras[i].v2, f->caras[i].v3 };
-        float px[3], py[3]; // , pz[3]; // Guardamos también la Z proyectada
+        int idx[3] = {f->caras[i].v1, f->caras[i].v2, f->caras[i].v3};
+        float px[3], py[3];
 
         for (int j = 0; j < 3; j++)
         {
@@ -216,35 +270,26 @@ void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distan
             float vy = f->vertices[idx[j] * 3 + 1];
             float vz = f->vertices[idx[j] * 3 + 2];
 
-            vx -= f->cx; vy -= f->cy; vz -= f->cz;
             rotar_punto(&vx, &vy, &vz, angulo, 'y');
             vz += distancia_camara;
 
-            // Guardamos las coordenadas proyectadas
             proyectar_a_pixel(vx, vy, vz, escala, escala, &px[j], &py[j], ventana_ancho, ventana_alto);
-           //  pz[j] = vz; // Guardamos la profundidad
         }
 
-        // --- BACKFACE CULLING ---
-        // Calculamos los vectores de dos lados del triángulo en pantalla
-        float x1 = px[1] - px[0];
-        float y1 = py[1] - py[0];
-        float x2 = px[2] - px[0];
-        float y2 = py[2] - py[0];
+        // Backface culling
+        float cross = (px[1] - px[0]) * (py[2] - py[0]) - (py[1] - py[0]) * (px[2] - px[0]);
 
-        // El valor "cross" nos dice la orientación (sentido horario o antihorario)
-        // En 2D, esto equivale a la dirección de la normal respecto a la cámara
-        float cross_product = (x1 * y2) - (y1 * x2);
+        if (cross > 0)
+        {
+            // Relleno
+            SDL_SetRenderDrawColor(renderer, 0, 200, 0, 255);
+            dibujar_triangulo_relleno(renderer, px[0], py[0], px[1], py[1], px[2], py[2]);
 
-        // Si el producto es menor que 0, la cara está mirando hacia atrás.
-        // ¡No la dibujamos y saltamos a la siguiente cara!
-        if (cross_product < 0) {
-            continue; 
+            // Bordes (para que no se vea solo una mancha verde)
+            SDL_SetRenderDrawColor(renderer, 0, 120, 0, 255);
+            SDL_RenderLine(renderer, px[0], py[0], px[1], py[1]);
+            SDL_RenderLine(renderer, px[1], py[1], px[2], py[2]);
+            SDL_RenderLine(renderer, px[2], py[2], px[0], py[0]);
         }
-
-        // --- DIBUJO DE LÍNEAS (Solo si pasó la prueba anterior) ---
-        SDL_RenderLine(renderer, px[0], py[0], px[1], py[1]);
-        SDL_RenderLine(renderer, px[1], py[1], px[2], py[2]);
-        SDL_RenderLine(renderer, px[2], py[2], px[0], py[0]);
     }
 }
