@@ -256,12 +256,15 @@ static void dibujar_triangulo_relleno(SDL_Renderer *renderer, float x0, float y0
 
 void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
 {
-    if (f == NULL || f->vertices == NULL || f->caras == NULL)
-        return;
+    if (f == NULL) return;
+
+    // Definimos una dirección de luz (ej: viene desde la cámara y un poco arriba)
+    float luz[3] = {0.0f, 0.0f, -1.0f}; 
 
     for (int i = 0; i < f->n_caras; i++)
     {
         int idx[3] = {f->caras[i].v1, f->caras[i].v2, f->caras[i].v3};
+        float v_rotado[3][3]; // Para guardar X, Y, Z rotados
         float px[3], py[3];
 
         for (int j = 0; j < 3; j++)
@@ -273,20 +276,35 @@ void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distan
             rotar_punto(&vx, &vy, &vz, angulo, 'y');
             vz += distancia_camara;
 
+            // Guardamos el 3D para la luz
+            v_rotado[j][0] = vx;
+            v_rotado[j][1] = vy;
+            v_rotado[j][2] = vz;
+
             proyectar_a_pixel(vx, vy, vz, escala, escala, &px[j], &py[j], ventana_ancho, ventana_alto);
         }
 
-        // Backface culling
+        // Backface culling (igual que antes)
         float cross = (px[1] - px[0]) * (py[2] - py[0]) - (py[1] - py[0]) * (px[2] - px[0]);
 
         if (cross > 0)
         {
-            // Relleno
-            SDL_SetRenderDrawColor(renderer, 0, 200, 0, 255);
+            // --- NUEVA LÓGICA DE ILUMINACIÓN ---
+            float normal[3];
+            calcular_normal(v_rotado[0], v_rotado[1], v_rotado[2], normal);
+            
+            float intensidad = calcular_iluminacion(normal, luz);
+            
+            // Ajustamos el color verde (0 a 255) según la intensidad
+            // Añadimos un poco de "luz ambiental" (0.1) para que no sea negro total
+            int color_v = (int)((intensidad * 0.9f + 0.1f) * 255);
+            
+            // Relleno con el nuevo brillo
+            SDL_SetRenderDrawColor(renderer, 0, color_v, 0, 255);
             dibujar_triangulo_relleno(renderer, px[0], py[0], px[1], py[1], px[2], py[2]);
 
-            // Bordes (para que no se vea solo una mancha verde)
-            SDL_SetRenderDrawColor(renderer, 0, 120, 0, 255);
+            // Bordes un poco más oscuros para dar estilo
+            SDL_SetRenderDrawColor(renderer, 0, color_v / 2, 0, 255);
             SDL_RenderLine(renderer, px[0], py[0], px[1], py[1]);
             SDL_RenderLine(renderer, px[1], py[1], px[2], py[2]);
             SDL_RenderLine(renderer, px[2], py[2], px[0], py[0]);

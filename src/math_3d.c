@@ -83,3 +83,38 @@ void calcular_centros(float *vertices, int total_puntos, float *cx, float *cy, f
     *cy = (min_y + max_y) / 2.0f;
     *cz = (min_z + max_z) / 2.0f;
 }
+
+// Calcula el vector normal de un triángulo definido por 3 puntos
+void calcular_normal(float v0[3], float v1[3], float v2[3], float normal[3])
+{
+    float edge1[3] = {v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]};
+    float edge2[3] = {v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]};
+
+    // Producto cruz para obtener la normal
+    normal[0] = edge1[1] * edge2[2] - edge1[2] * edge2[1];
+    normal[1] = edge1[2] * edge2[0] - edge1[0] * edge2[2];
+    normal[2] = edge1[0] * edge2[1] - edge1[1] * edge2[0];
+
+    // Normalizar el vector (que mida 1)
+    float longitud = sqrtf(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+    if (longitud > 0)
+    {
+        normal[0] /= longitud;
+        normal[1] /= longitud;
+        normal[2] /= longitud;
+    }
+}
+
+// Calcula la intensidad de luz (0.0 a 1.0)
+float calcular_iluminacion(float normal[3], float direccion_luz[3])
+{
+    // Producto punto (Dot Product)
+    // Si da 1.0 están alineados (luz frontal), si da <= 0 está en sombra
+    float intensidad = normal[0] * direccion_luz[0] +
+                       normal[1] * direccion_luz[1] +
+                       normal[2] * direccion_luz[2];
+
+    if (intensidad < 0)
+        intensidad = 0;
+    return intensidad;
+}
