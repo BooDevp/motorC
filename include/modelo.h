@@ -6,18 +6,21 @@
 #include <SDL3/SDL.h>
 #include "math_3d.h"
 
-typedef struct
-{
+typedef struct {
+    int v1, v2, v3;
+} Cara;
+
+typedef struct {
     float *vertices;
-    int *aristas;
-    int n_puntos;
-    int n_aristas;
+    int n_puntos;    
+    Cara *caras;
+    int n_caras;    
     float cx, cy, cz;
 } Modelo;
 
 Modelo *get_modelo_obj(Arena *arena, const char *ruta);
 void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COOLDOWN_BOTON, Arena *arena);
-void pintar_modelo_lineal(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala);
+void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala);
 void imprimir_info_modelo(Modelo *f);
 
 #endif

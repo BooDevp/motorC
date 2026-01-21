@@ -13,7 +13,7 @@ void imprimir_info_modelo(Modelo *f)
     printf("--- Info Modelo ---\n");
     printf("Direccion en RAM: %p\n", (void *)f);
     printf("Vertices: %d (En RAM: %p)\n", f->n_puntos, (void *)f->vertices);
-    printf("Aristas:  %d (En RAM: %p)\n", f->n_aristas, (void *)f->aristas);
+    printf("Caras: %d (En RAM: %p)\n", f->n_caras, (void *)f->caras);
     printf("Centro:   (%.2f, %.2f, %.2f)\n", f->cx, f->cy, f->cz);
 
     // Si quieres ver los primeros 3 vértices (X, Y, Z)
@@ -83,117 +83,91 @@ static void normalizacion_objeto_centrar(Modelo *f)
     }
 }
 
+// Cargar modelo desde archivo .obj (Blender)
 Modelo *get_modelo_obj(Arena *arena, const char *ruta)
 {
     FILE *archivo = fopen(ruta, "r");
     if (!archivo)
-    {
-        printf("Error: No se pudo abrir %s\n", ruta);
         return NULL;
-    }
 
     Modelo *f = (Modelo *)arena_push(arena, sizeof(Modelo));
-    if (!f)
-        return NULL;
     f->n_puntos = 0;
-    f->n_aristas = 0;
+    f->n_caras = 0; // Ahora contamos caras (triángulos)
 
-    char linea[512]; // Buffer para las líneas
+    char linea[512];
 
-    // --- PRIMERA PASADA: CONTEO REAL ---
+    // --- PRIMERA PASADA: CONTEO ---
     while (fgets(linea, sizeof(linea), archivo))
     {
-        char *ptr = trim_vacio(linea);
-        if (ptr[0] == 'v' && isspace(ptr[1]))
+        if (linea[0] == '#' || linea[0] == '\n' || linea[0] == '\r')
+            continue;
+
+        if (linea[0] == 'v' && isspace(linea[1]))
         {
             f->n_puntos++;
         }
-        else if ((ptr[0] == 'f' || ptr[0] == 'l') && isspace(ptr[1]))
+        else if (linea[0] == 'f' && isspace(linea[1]))
         {
-            int elementos_en_linea = 0;
-            char *token = strtok(ptr + 1, " \t\r\n");
-            while (token)
+            int vertices_en_linea = 0;
+            char *ptr = linea + 1;
+            while (*ptr)
             {
-                elementos_en_linea++;
-                token = strtok(NULL, " \t\r\n");
+                if (isspace(*ptr) && !isspace(*(ptr + 1)) && *(ptr + 1) != '\0')
+                    vertices_en_linea++;
+                ptr++;
             }
-            // Si es 'f' (cara), son N aristas (bucle cerrado).
-            // Si es 'l' (línea), son N-1 aristas.
-            if (ptr[0] == 'f' && elementos_en_linea > 2)
-                f->n_aristas += elementos_en_linea;
-            if (ptr[0] == 'l' && elementos_en_linea > 1)
-                f->n_aristas += (elementos_en_linea - 1);
+            // TRIANGULACIÓN: Una cara de N vértices produce (N - 2) triángulos
+            // Ejemplo: Cuadrado (4 vértices) -> 4 - 2 = 2 triángulos.
+            if (vertices_en_linea >= 3)
+            {
+                f->n_caras += (vertices_en_linea - 2);
+            }
         }
     }
 
-    // 2. RESERVA EXACTA
+    // RESERVA DE MEMORIA EXACTA
     f->vertices = (float *)arena_push(arena, f->n_puntos * 3 * sizeof(float));
-    f->aristas = (int *)arena_push(arena, f->n_aristas * 2 * sizeof(int));
+    f->caras = (Cara *)arena_push(arena, f->n_caras * sizeof(Cara));
 
-    if (!f->vertices || !f->aristas)
-    {
-        fclose(archivo);
-        return NULL;
-    }
-
-    // --- SEGUNDA PASADA: LECTURA SEGURA ---
+    // --- SEGUNDA PASADA: LECTURA ---
     rewind(archivo);
     int v_ptr = 0;
-    int a_ptr = 0;
-    int total_aristas_reales = 0;
+    int c_ptr = 0;
 
     while (fgets(linea, sizeof(linea), archivo))
     {
-        char *ptr = trim_vacio(linea);
-        char tipo = ptr[0];
-
-        if (tipo == 'v' && isspace(ptr[1]))
+        if (linea[0] == 'v' && isspace(linea[1]))
         {
-            sscanf(ptr, "v %f %f %f", &f->vertices[v_ptr], &f->vertices[v_ptr + 1], &f->vertices[v_ptr + 2]);
+            sscanf(linea, "v %f %f %f", &f->vertices[v_ptr], &f->vertices[v_ptr + 1], &f->vertices[v_ptr + 2]);
             v_ptr += 3;
         }
-        else if ((tipo == 'f' || tipo == 'l') && isspace(ptr[1]))
+        else if (linea[0] == 'f' && isspace(linea[1]))
         {
-            int v_indices[64]; // Soportamos caras de hasta 64 vértices (blindado)
+            int v_indices[64];
             int count = 0;
-            char *token = strtok(ptr + 1, " \t\r\n");
+            char *token = strtok(linea + 1, " \t\r\n");
 
             while (token && count < 64)
             {
-                // Los archivos OBJ a veces tienen v/vt/vn, solo queremos la 'v' (el primer número)
                 v_indices[count] = atoi(token) - 1;
                 count++;
                 token = strtok(NULL, " \t\r\n");
             }
 
-            for (int i = 0; i < count; i++)
+            // Convertimos el polígono en triángulos
+            // Usamos la técnica de "abanico" (Triangle Fan)
+            for (int i = 1; i < count - 1; i++)
             {
-                // Lógica de conexión:
-                if (tipo == 'f')
-                {
-                    // Cara: conecta cada uno con el siguiente, y el último con el primero
-                    f->aristas[a_ptr++] = v_indices[i];
-                    f->aristas[a_ptr++] = v_indices[(i + 1) % count];
-                    total_aristas_reales++;
-                }
-                else if (tipo == 'l' && i < count - 1)
-                {
-                    // Línea: conecta cada uno con el siguiente, pero no cierra el bucle
-                    f->aristas[a_ptr++] = v_indices[i];
-                    f->aristas[a_ptr++] = v_indices[i + 1];
-                    total_aristas_reales++;
-                }
+                f->caras[c_ptr].v1 = v_indices[0];
+                f->caras[c_ptr].v2 = v_indices[i];
+                f->caras[c_ptr].v3 = v_indices[i + 1];
+                c_ptr++;
             }
         }
     }
 
-    // Ajuste final: La realidad manda sobre el conteo previo
-    f->n_aristas = total_aristas_reales;
-
-    // --- NORMALIZACIÓN MEJORADA (Efecto Zoom Uniforme) ---
-    normalizacion_objeto_centrar(f);
-
     fclose(archivo);
+    normalizacion_objeto_centrar(f);
     arena_reporte(arena, "DESPUES DE CARGAR MODELO");
     return f;
 }
@@ -211,7 +185,8 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
         arena_reset(arena);
 
         // Cargamos el nuevo modelo
-        char *ruta = "./assets/models/cubo.obj";
+        // char *ruta = "./assets/models/Handpopus.obj";
+        char *ruta = "./assets/models/Cubo.obj";
 
         Modelo *nuevo = get_modelo_obj(arena, ruta);
         if (nuevo)
@@ -224,50 +199,50 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
     }
 }
 
-void pintar_modelo_lineal(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
+void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
 {
-    if (f != NULL && f->vertices != NULL && f->aristas != NULL)
+    // Ahora comprobamos f->caras en lugar de f->aristas
+    if (f == NULL || f->vertices == NULL || f->caras == NULL)
+        return;
+
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+    // Recorremos cada cara (triángulo)
+    for (int i = 0; i < f->n_caras; i++)
     {
-        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-        for (int i = 0; i < f->n_aristas; i++)
+        // Extraemos los 3 índices de la cara actual
+        int idx[3] = {f->caras[i].v1, f->caras[i].v2, f->caras[i].v3};
+        float px[3], py[3];
+
+        // Procesamos los 3 vértices del triángulo
+        for (int j = 0; j < 3; j++)
         {
-            int idx_a = f->aristas[i * 2];     // Punto Inicio
-            int idx_b = f->aristas[i * 2 + 1]; // Punto FInal
+            // Coordenadas originales
+            float vx = f->vertices[idx[j] * 3];
+            float vy = f->vertices[idx[j] * 3 + 1];
+            float vz = f->vertices[idx[j] * 3 + 2];
 
-            // Verificamos que los índices sean válidos para evitar crashes
-            if (idx_a >= f->n_puntos || idx_b >= f->n_puntos)
-                continue;
+            // 1. Centrar (usando el cx, cy, cz calculado en la normalización)
+            vx -= f->cx;
+            vy -= f->cy;
+            vz -= f->cz;
 
-            float vx0 = f->vertices[idx_a * 3];     // X
-            float vy0 = f->vertices[idx_a * 3 + 1]; // Y
-            float vz0 = f->vertices[idx_a * 3 + 2]; // Z
+            // 2. Rotar
+            rotar_punto(&vx, &vy, &vz, angulo, 'y');
 
-            float vx1 = f->vertices[idx_b * 3];     // X
-            float vy1 = f->vertices[idx_b * 3 + 1]; // Y
-            float vz1 = f->vertices[idx_b * 3 + 2]; // Z
+            // 3. Posicionar frente a la cámara
+            vz += distancia_camara;
 
-            // CENTRAR
-            vx0 -= f->cx;
-            vy0 -= f->cy;
-            vz0 -= f->cz;
-            vx1 -= f->cx;
-            vy1 -= f->cy;
-            vz1 -= f->cz;
-
-            // Rotar punto sobre eje
-            rotar_punto(&vx0, &vy0, &vz0, angulo, 'y');
-            rotar_punto(&vx1, &vy1, &vz1, angulo, 'y');
-
-            // Alejar de la cámara
-            vz0 += distancia_camara;
-            vz1 += distancia_camara;
-
-            float px0, py0, px1, py1;
-            proyectar_a_pixel(vx0, vy0, vz0, escala, escala, &px0, &py0, ventana_ancho, ventana_alto);
-            proyectar_a_pixel(vx1, vy1, vz1, escala, escala, &px1, &py1, ventana_ancho, ventana_alto);
-
-            // ¡Dibujar línea real de píxeles!
-            SDL_RenderLine(renderer, px0, py0, px1, py1);
+            // 4. Proyectar a 2D (píxeles)
+            proyectar_a_pixel(vx, vy, vz, escala, escala, &px[j], &py[j], ventana_ancho, ventana_alto);
         }
+
+        // --- DIBUJAR LAS 3 LÍNEAS DEL TRIÁNGULO ---
+        // Línea 1 -> 2
+        SDL_RenderLine(renderer, px[0], py[0], px[1], py[1]);
+        // Línea 2 -> 3
+        SDL_RenderLine(renderer, px[1], py[1], px[2], py[2]);
+        // Línea 3 -> 1 (cierra el triángulo)
+        SDL_RenderLine(renderer, px[2], py[2], px[0], py[0]);
     }
 }

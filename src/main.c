@@ -36,14 +36,14 @@ int main(int argc, char *argv[])
     // Crear ventana y renderer SDL
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);    
+    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);
 
     // No hay modelo al iniciar
     Modelo *modelo_actual = NULL;
 
     float escala = (VENTANA_ANCHO / 2.0f) * ZOOM;
     float angulo = 0.0f;
-    
+
     SDL_Event ev;
 
     Uint64 tiempo_ahora = SDL_GetTicks();
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     char texto_fps[32] = "Calculando FPS...";
 
     Uint64 ultimo_clic = 0;
-    const Uint64 COOLDOWN_BOTON = 200;    
+    const Uint64 COOLDOWN_BOTON = 200;
     bool bool_vsync = true;
 
     Boton btn_vsync = {
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
     bool corriendo = true;
     while (corriendo)
-    {   
+    {
         ui_comenzar_frame();
 
         // Buzon de eventos
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
         SDL_RenderClear(renderer);
 
         // Dibujamos la figura
-        pintar_modelo_lineal(modelo_actual, renderer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
+        pintar_modelo(modelo_actual, renderer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
 
         // Dibujamos el texto en pantalla
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
