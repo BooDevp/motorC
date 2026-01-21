@@ -13,5 +13,7 @@ typedef struct
 } Boton;
 
 void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params, bool *hover_any_btn);
+void ui_init();
+void gestionar_cursor_raton(bool hover_any_btn);
 
 #endif

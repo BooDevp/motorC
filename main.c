@@ -1,5 +1,3 @@
-// gcc main.c math_3d.c -o motor.exe -I./include -L./lib -lSDL3 -mwindows
-
 // Librerías SDL3
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -14,6 +12,8 @@
 // Configuraciones de pantalla
 #define VENTANA_ANCHO 800
 #define VENTANA_ALTO 600
+
+// Configuraciones de la camara
 #define DISTANCIA_CAMARA 1.0
 #define ZOOM 1.0
 
@@ -69,6 +69,9 @@ int main(int argc, char *argv[])
     if (!SDL_Init(SDL_INIT_VIDEO))
         return 1;
 
+    // Inicializar los cursores
+    ui_init();
+
     // Inicializar presupuesto de la RAM
     Arena arena_escena;
     arena_inicializar(&arena_escena, ARENA_SIZE_MB * 1024 * 1024);
@@ -76,18 +79,14 @@ int main(int argc, char *argv[])
     // Crear ventana y renderer SDL
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);
+    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);    
 
-    // Cursores
-    SDL_Cursor *cursor_mano = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
-    SDL_Cursor *cursor_normal = SDL_GetDefaultCursor();
-
+    // No hay modelo al iniciar
     Modelo *modelo_actual = NULL;
 
     float escala = (VENTANA_ANCHO / 2.0f) * ZOOM;
     float angulo = 0.0f;
-
-    bool corriendo = true;
+    
     SDL_Event ev;
 
     Uint64 tiempo_ahora = SDL_GetTicks();
@@ -139,6 +138,7 @@ int main(int argc, char *argv[])
     // Habilitar/desactivar VSync
     SDL_SetRenderVSync(renderer, bool_vsync);
 
+    bool corriendo = true;
     while (corriendo)
     {
         hover_any_btn = false;
@@ -183,14 +183,8 @@ int main(int argc, char *argv[])
         // Calculamos FPS
         calcular_frames(&fps_actuales, &frames_contados, texto_fps, sizeof(texto_fps), &tiempo_anterior);
 
-        if (hover_any_btn)
-        {
-            SDL_SetCursor(cursor_mano);
-        }
-        else
-        {
-            SDL_SetCursor(cursor_normal);
-        }
+        // Cursor raton
+        gestionar_cursor_raton(hover_any_btn);
     }
 
     SDL_DestroyRenderer(renderer);

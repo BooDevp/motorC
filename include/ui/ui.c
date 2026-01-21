@@ -1,3 +1,4 @@
+#include <SDL3/SDL.h>
 #include <stdio.h>
 #include "ui.h"
 
@@ -47,5 +48,27 @@ void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params, bool *hove
     if (hover)
     {
         *hover_any_btn = true;
+    }
+}
+
+static SDL_Cursor *cursor_mano = NULL;
+static SDL_Cursor *cursor_normal = NULL;
+
+void ui_init() {
+    if (cursor_mano == NULL) {
+        cursor_mano = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
+    }
+    if (cursor_normal == NULL) {
+        cursor_normal = SDL_GetDefaultCursor();
+    }
+}
+
+void gestionar_cursor_raton(bool hover_any_btn) {
+    if (!cursor_mano || !cursor_normal) return;
+
+    if (hover_any_btn) {
+        SDL_SetCursor(cursor_mano);
+    } else {
+        SDL_SetCursor(cursor_normal);
     }
 }
