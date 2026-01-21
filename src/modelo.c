@@ -201,48 +201,50 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
 
 void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
 {
-    // Ahora comprobamos f->caras en lugar de f->aristas
-    if (f == NULL || f->vertices == NULL || f->caras == NULL)
-        return;
+    if (f == NULL || f->vertices == NULL || f->caras == NULL) return;
 
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
 
-    // Recorremos cada cara (triángulo)
     for (int i = 0; i < f->n_caras; i++)
     {
-        // Extraemos los 3 índices de la cara actual
-        int idx[3] = {f->caras[i].v1, f->caras[i].v2, f->caras[i].v3};
-        float px[3], py[3];
+        int idx[3] = { f->caras[i].v1, f->caras[i].v2, f->caras[i].v3 };
+        float px[3], py[3]; // , pz[3]; // Guardamos también la Z proyectada
 
-        // Procesamos los 3 vértices del triángulo
         for (int j = 0; j < 3; j++)
         {
-            // Coordenadas originales
             float vx = f->vertices[idx[j] * 3];
             float vy = f->vertices[idx[j] * 3 + 1];
             float vz = f->vertices[idx[j] * 3 + 2];
 
-            // 1. Centrar (usando el cx, cy, cz calculado en la normalización)
-            vx -= f->cx;
-            vy -= f->cy;
-            vz -= f->cz;
-
-            // 2. Rotar
+            vx -= f->cx; vy -= f->cy; vz -= f->cz;
             rotar_punto(&vx, &vy, &vz, angulo, 'y');
-
-            // 3. Posicionar frente a la cámara
             vz += distancia_camara;
 
-            // 4. Proyectar a 2D (píxeles)
+            // Guardamos las coordenadas proyectadas
             proyectar_a_pixel(vx, vy, vz, escala, escala, &px[j], &py[j], ventana_ancho, ventana_alto);
+           //  pz[j] = vz; // Guardamos la profundidad
         }
 
-        // --- DIBUJAR LAS 3 LÍNEAS DEL TRIÁNGULO ---
-        // Línea 1 -> 2
+        // --- BACKFACE CULLING ---
+        // Calculamos los vectores de dos lados del triángulo en pantalla
+        float x1 = px[1] - px[0];
+        float y1 = py[1] - py[0];
+        float x2 = px[2] - px[0];
+        float y2 = py[2] - py[0];
+
+        // El valor "cross" nos dice la orientación (sentido horario o antihorario)
+        // En 2D, esto equivale a la dirección de la normal respecto a la cámara
+        float cross_product = (x1 * y2) - (y1 * x2);
+
+        // Si el producto es menor que 0, la cara está mirando hacia atrás.
+        // ¡No la dibujamos y saltamos a la siguiente cara!
+        if (cross_product < 0) {
+            continue; 
+        }
+
+        // --- DIBUJO DE LÍNEAS (Solo si pasó la prueba anterior) ---
         SDL_RenderLine(renderer, px[0], py[0], px[1], py[1]);
-        // Línea 2 -> 3
         SDL_RenderLine(renderer, px[1], py[1], px[2], py[2]);
-        // Línea 3 -> 1 (cierra el triángulo)
         SDL_RenderLine(renderer, px[2], py[2], px[0], py[0]);
     }
 }
