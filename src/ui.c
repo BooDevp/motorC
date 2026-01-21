@@ -1,8 +1,8 @@
 #include <SDL3/SDL.h>
-#include <stdio.h>
 #include "ui.h"
+#include "render.h"
 
-// Variables internas (Encapsuladas)
+// Variables internas
 static bool g_hover_any_btn = false;
 static SDL_Cursor *cursor_mano = NULL;
 static SDL_Cursor *cursor_normal = NULL;
@@ -57,21 +57,8 @@ void ui_init() {
     if (!cursor_normal) cursor_normal = SDL_GetDefaultCursor();
 }
 
-static void cambiar_vsync(SDL_Renderer *renderer, bool *habilitar, Uint64 *ultimo_clic, Uint64 cooldown)
-{
-    Uint64 ahora = SDL_GetTicks();
-    if (ahora - *ultimo_clic < cooldown)
-        return;
 
-    *habilitar = !(*habilitar);
-
-    // Aplicamos el cambio al renderer
-    SDL_SetRenderVSync(renderer, *habilitar ? true : false);
-
-    *ultimo_clic = ahora;
-    printf("VSync: %s\n", *habilitar ? "Activado" : "Desactivado");
-}
-
+// Acciones de los botones
 void accion_cambiar_vsync(void *datos)
 {
     FunctionCambioVsync *d = (FunctionCambioVsync *)datos;

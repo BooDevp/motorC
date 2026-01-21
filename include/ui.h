@@ -28,8 +28,6 @@ typedef struct
     Uint64 COOLDOWN_BOTON;
 } FunctionCambioVsync;
 
-void accion_cambiar_vsync(void *datos);
-
 typedef struct
 {
     Modelo **modelo;
@@ -38,6 +36,8 @@ typedef struct
     Arena *arena;
 } FunctionCargarModelo;
 
+// Acciones de los botones
+void accion_cambiar_vsync(void *datos);
 void accion_cargar_modelo(void *datos);
 
 #endif
