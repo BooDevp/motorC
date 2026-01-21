@@ -1,6 +1,64 @@
 #include "modelo.h"
 #include <ctype.h>
 
+static void normalizacion_objeto_centrar(Modelo *f)
+{
+    if (f->n_puntos > 0)
+    {
+        float min_x = f->vertices[0], max_x = f->vertices[0];
+        float min_y = f->vertices[1], max_y = f->vertices[1];
+        float min_z = f->vertices[2], max_z = f->vertices[2];
+
+        // 1. Encontrar límites
+        for (int i = 0; i < f->n_puntos; i++)
+        {
+            if (f->vertices[i * 3] < min_x)
+                min_x = f->vertices[i * 3];
+            if (f->vertices[i * 3] > max_x)
+                max_x = f->vertices[i * 3];
+            if (f->vertices[i * 3 + 1] < min_y)
+                min_y = f->vertices[i * 3 + 1];
+            if (f->vertices[i * 3 + 1] > max_y)
+                max_y = f->vertices[i * 3 + 1];
+            if (f->vertices[i * 3 + 2] < min_z)
+                min_z = f->vertices[i * 3 + 2];
+            if (f->vertices[i * 3 + 2] > max_z)
+                max_z = f->vertices[i * 3 + 2];
+        }
+
+        // 2. Centrar primero el objeto en (0,0,0)
+        float cx = (min_x + max_x) / 2.0f;
+        float cy = (min_y + max_y) / 2.0f;
+        float cz = (min_z + max_z) / 2.0f;
+
+        float max_dist_sq = 0;
+        for (int i = 0; i < f->n_puntos; i++)
+        {
+            f->vertices[i * 3] -= cx;
+            f->vertices[i * 3 + 1] -= cy;
+            f->vertices[i * 3 + 2] -= cz;
+
+            // 3. Buscar el punto más lejano al nuevo centro (0,0,0)
+            float d_sq = f->vertices[i * 3] * f->vertices[i * 3] +
+                         f->vertices[i * 3 + 1] * f->vertices[i * 3 + 1] +
+                         f->vertices[i * 3 + 2] * f->vertices[i * 3 + 2];
+            if (d_sq > max_dist_sq)
+                max_dist_sq = d_sq;
+        }
+
+        // 4. Escalar para que el radio máximo sea 0.5 (ocupa 1 unidad de pantalla)
+        float max_dist = sqrtf(max_dist_sq);
+        if (max_dist > 0)
+        {
+            float factor = 0.5f / max_dist;
+            for (int i = 0; i < f->n_puntos * 3; i++)
+            {
+                f->vertices[i] *= factor;
+            }
+        }
+    }
+}
+
 Modelo *get_modelo_obj(Arena *arena, const char *ruta)
 {
     FILE *archivo = fopen(ruta, "r");
@@ -129,9 +187,7 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
         arena_reset(arena);
 
         // Cargamos el nuevo modelo
-        char *ruta = "./resources/cubo.obj";
-
-        ruta = "./resources/cubo.obj";
+        char *ruta = "./assets/models/cubo.obj";
 
         Modelo *nuevo = get_modelo_obj(arena, ruta);
         if (nuevo)
@@ -141,64 +197,6 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
         }
 
         *ultimo_clic = tiempo_actual;
-    }
-}
-
-void normalizacion_objeto_centrar(Modelo *f)
-{
-    if (f->n_puntos > 0)
-    {
-        float min_x = f->vertices[0], max_x = f->vertices[0];
-        float min_y = f->vertices[1], max_y = f->vertices[1];
-        float min_z = f->vertices[2], max_z = f->vertices[2];
-
-        // 1. Encontrar límites
-        for (int i = 0; i < f->n_puntos; i++)
-        {
-            if (f->vertices[i * 3] < min_x)
-                min_x = f->vertices[i * 3];
-            if (f->vertices[i * 3] > max_x)
-                max_x = f->vertices[i * 3];
-            if (f->vertices[i * 3 + 1] < min_y)
-                min_y = f->vertices[i * 3 + 1];
-            if (f->vertices[i * 3 + 1] > max_y)
-                max_y = f->vertices[i * 3 + 1];
-            if (f->vertices[i * 3 + 2] < min_z)
-                min_z = f->vertices[i * 3 + 2];
-            if (f->vertices[i * 3 + 2] > max_z)
-                max_z = f->vertices[i * 3 + 2];
-        }
-
-        // 2. Centrar primero el objeto en (0,0,0)
-        float cx = (min_x + max_x) / 2.0f;
-        float cy = (min_y + max_y) / 2.0f;
-        float cz = (min_z + max_z) / 2.0f;
-
-        float max_dist_sq = 0;
-        for (int i = 0; i < f->n_puntos; i++)
-        {
-            f->vertices[i * 3] -= cx;
-            f->vertices[i * 3 + 1] -= cy;
-            f->vertices[i * 3 + 2] -= cz;
-
-            // 3. Buscar el punto más lejano al nuevo centro (0,0,0)
-            float d_sq = f->vertices[i * 3] * f->vertices[i * 3] +
-                         f->vertices[i * 3 + 1] * f->vertices[i * 3 + 1] +
-                         f->vertices[i * 3 + 2] * f->vertices[i * 3 + 2];
-            if (d_sq > max_dist_sq)
-                max_dist_sq = d_sq;
-        }
-
-        // 4. Escalar para que el radio máximo sea 0.5 (ocupa 1 unidad de pantalla)
-        float max_dist = sqrtf(max_dist_sq);
-        if (max_dist > 0)
-        {
-            float factor = 0.5f / max_dist;
-            for (int i = 0; i < f->n_puntos * 3; i++)
-            {
-                f->vertices[i] *= factor;
-            }
-        }
     }
 }
 

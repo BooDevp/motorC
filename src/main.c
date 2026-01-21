@@ -3,11 +3,11 @@
 #include <SDL3/SDL_main.h>
 
 // Mis librerías
-#include "math_3d/math_3d.h"
-#include "utils/utils.h"
-#include "ui/ui.h"
-#include "memoria/gestion_memoria.h"
-#include "modelo/modelo.h"
+#include "math_3d.h"
+#include "utils.h"
+#include "ui.h"
+#include "gestion_memoria.h"
+#include "modelo.h"
 
 // Configuraciones de pantalla
 #define VENTANA_ANCHO 800
@@ -19,49 +19,6 @@
 
 // Configuracion memoria
 #define ARENA_SIZE_MB 128
-
-void cambiar_vsync(SDL_Renderer *renderer, bool *habilitar, Uint64 *ultimo_clic, Uint64 cooldown)
-{
-    Uint64 ahora = SDL_GetTicks();
-    if (ahora - *ultimo_clic < cooldown)
-        return;
-
-    *habilitar = !(*habilitar);
-
-    // Aplicamos el cambio al renderer
-    SDL_SetRenderVSync(renderer, *habilitar ? true : false);
-
-    *ultimo_clic = ahora;
-    printf("VSync: %s\n", *habilitar ? "Activado" : "Desactivado");
-}
-
-typedef struct
-{
-    SDL_Renderer *renderer;
-    bool *bool_vsync;
-    Uint64 *ultimo_clic;
-    Uint64 COOLDOWN_BOTON;
-} FunctionCambioVsync;
-
-void accion_cambiar_vsync(void *datos)
-{
-    FunctionCambioVsync *d = (FunctionCambioVsync *)datos;
-    cambiar_vsync(d->renderer, d->bool_vsync, d->ultimo_clic, d->COOLDOWN_BOTON);
-}
-
-typedef struct
-{
-    Modelo **modelo;
-    Uint64 *ultimo_clic;
-    const Uint64 COOLDOWN_BOTON;
-    Arena *arena;
-} FunctionCargarModelo;
-
-void accion_cargar_modelo(void *datos)
-{
-    FunctionCargarModelo *d = (FunctionCargarModelo *)datos;
-    cargar_modelo(d->modelo, d->ultimo_clic, d->COOLDOWN_BOTON, d->arena);
-}
 
 // --- MAIN ---
 int main(int argc, char *argv[])
@@ -102,9 +59,7 @@ int main(int argc, char *argv[])
     char texto_fps[32] = "Calculando FPS...";
 
     Uint64 ultimo_clic = 0;
-    const Uint64 COOLDOWN_BOTON = 200;
-
-    bool hover_any_btn = false;
+    const Uint64 COOLDOWN_BOTON = 200;    
     bool bool_vsync = true;
 
     Boton btn_vsync = {
@@ -140,8 +95,8 @@ int main(int argc, char *argv[])
 
     bool corriendo = true;
     while (corriendo)
-    {
-        hover_any_btn = false;
+    {   
+        ui_comenzar_frame();
 
         // Buzon de eventos
         while (SDL_PollEvent(&ev))
@@ -171,8 +126,8 @@ int main(int argc, char *argv[])
         SDL_RenderDebugText(renderer, 10, 10, texto_fps);
 
         // Dibujamos los botones
-        ui_dibujar_boton(renderer, &btn_vsync, btn_vsync.params, &hover_any_btn);
-        ui_dibujar_boton(renderer, &btn_cambio, btn_cambio.params, &hover_any_btn);
+        ui_dibujar_boton(renderer, &btn_vsync, btn_vsync.params);
+        ui_dibujar_boton(renderer, &btn_cambio, btn_cambio.params);
 
         // Mostramos pantalla
         SDL_RenderPresent(renderer);
@@ -184,7 +139,7 @@ int main(int argc, char *argv[])
         calcular_frames(&fps_actuales, &frames_contados, texto_fps, sizeof(texto_fps), &tiempo_anterior);
 
         // Cursor raton
-        gestionar_cursor_raton(hover_any_btn);
+        gestionar_cursor_raton();
     }
 
     SDL_DestroyRenderer(renderer);
