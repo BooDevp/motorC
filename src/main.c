@@ -26,125 +26,100 @@ int main(int argc, char *argv[])
     if (!SDL_Init(SDL_INIT_VIDEO))
         return 1;
 
-    // Inicializar los cursores
     ui_init();
 
-    // Inicializar presupuesto de la RAM
+    // 1. GESTIÓN DE MEMORIA
+    Arena arena_global;
+    arena_inicializar(&arena_global, 20 * 1024 * 1024);
     Arena arena_escena;
-    arena_inicializar(&arena_escena, ARENA_SIZE_MB * 1024 * 1024);
+    arena_inicializar(&arena_escena, (ARENA_SIZE_MB - 20) * 1024 * 1024);
 
-    // Crear ventana y renderer SDL
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);
 
-    // No hay modelo al iniciar
+    // 2. ESTADO DEL MOTOR
     Modelo *modelo_actual = NULL;
-
     float escala = (VENTANA_ANCHO / 2.0f) * ZOOM;
     float angulo = 0.0f;
+    float velocidad_giro = 20.0f;
+    float *z_buffer = inicializar_zbuffer(&arena_global, VENTANA_ANCHO, VENTANA_ALTO);
 
-    SDL_Event ev;
-
+    // 3. VARIABLES DE FPS Y TIEMPO (Declaradas correctamente)
     Uint64 tiempo_ahora = SDL_GetTicks();
     Uint64 tiempo_ultimo = 0;
-    float dt = 0;
-
-    // 90 grados por segundo
-    float velocidad_giro = 20.0f;
-
-    Uint64 tiempo_anterior = SDL_GetTicks();
+    Uint64 tiempo_anterior_fps = SDL_GetTicks();
     Uint64 frames_contados = 0;
     float fps_actuales = 0;
-    char texto_fps[32] = "Calculando FPS...";
+    float dt = 0;
+    char texto_fps[64] = "Iniciando...";
 
+    // 4. BOTONES Y UI
     Uint64 ultimo_clic = 0;
     const Uint64 COOLDOWN_BOTON = 200;
     bool bool_vsync = true;
 
-    Boton btn_vsync = {
-        .x = 20,
-        .y = 50,
-        .w = 140,
-        .h = 30,
-        .color = {100, 100, 100, 255},
-        .etiqueta = "VSYNC ON/OFF",
-        .accion = accion_cambiar_vsync,
-        .params = &(FunctionCambioVsync){
-            .renderer = renderer,
-            .bool_vsync = &bool_vsync,
-            .ultimo_clic = &ultimo_clic,
-            .COOLDOWN_BOTON = COOLDOWN_BOTON}};
+    FunctionCambioVsync params_vsync = {renderer, &bool_vsync, &ultimo_clic, COOLDOWN_BOTON};
+    Boton btn_vsync = {20, 50, 140, 30, {100, 100, 100, 255}, "VSYNC ON/OFF", accion_cambiar_vsync, &params_vsync};
 
-    Boton btn_cambio = {
-        .x = 20,
-        .y = 90,
-        .w = 140,
-        .h = 30,
-        .color = {100, 100, 100, 255},
-        .etiqueta = "CARGAR MODELO",
-        .accion = accion_cargar_modelo,
-        .params = &(FunctionCargarModelo){
-            .modelo = &modelo_actual,
-            .ultimo_clic = &ultimo_clic,
-            .COOLDOWN_BOTON = COOLDOWN_BOTON,
-            .arena = &arena_escena}};
+    FunctionCargarModelo params_modelo = {&modelo_actual, &ultimo_clic, COOLDOWN_BOTON, &arena_escena};
+    Boton btn_cambio = {20, 90, 140, 30, {100, 100, 100, 255}, "CARGAR MODELO", accion_cargar_modelo, &params_modelo};
 
-    // Habilitar/desactivar VSync
     SDL_SetRenderVSync(renderer, bool_vsync);
 
+    // --- BUCLE PRINCIPAL ---
     bool corriendo = true;
+    SDL_Event ev;
+
     while (corriendo)
     {
         ui_comenzar_frame();
-
-        // Buzon de eventos
         while (SDL_PollEvent(&ev))
         {
-            // El usuario cerrado el programa
             if (ev.type == SDL_EVENT_QUIT)
-            {
                 corriendo = false;
-            }
         }
 
+        // Delta Time
         tiempo_ultimo = tiempo_ahora;
         tiempo_ahora = SDL_GetTicks();
-
-        // Calculamos la diferencia y la pasamos a segundos (por eso / 1000.0f)
         dt = (tiempo_ahora - tiempo_ultimo) / 1000.0f;
 
-        // Limpiamos lienzo poniendo en negro
+        // --- RENDERIZADO ---
         SDL_SetRenderDrawColor(renderer, 15, 15, 15, 255);
         SDL_RenderClear(renderer);
 
-        // Dibujamos la figura
-        pintar_modelo(modelo_actual, renderer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
+        // Reset de profundidad
+        limpiar_zbuffer(z_buffer, VENTANA_ANCHO, VENTANA_ALTO);
 
-        // Dibujamos el texto en pantalla
+        if (modelo_actual != NULL)
+        {
+            // Distancia 3.0 para evitar problemas de clipping
+            pintar_modelo(modelo_actual, renderer, z_buffer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
+        }
+
+        // --- UI Y ESTADÍSTICAS ---
+        calcular_frames(&fps_actuales, &frames_contados, texto_fps, sizeof(texto_fps), &tiempo_anterior_fps);
+
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDebugText(renderer, 10, 10, texto_fps);
 
-        // Dibujamos los botones
         ui_dibujar_boton(renderer, &btn_vsync, btn_vsync.params);
         ui_dibujar_boton(renderer, &btn_cambio, btn_cambio.params);
 
-        // Mostramos pantalla
         SDL_RenderPresent(renderer);
 
-        // Actualizamos ángulo
-        angulo += velocidad_giro * dt; // Velocidad de giro con Delta Time
-
-        // Calculamos FPS
-        calcular_frames(&fps_actuales, &frames_contados, texto_fps, sizeof(texto_fps), &tiempo_anterior);
-
-        // Cursor raton
+        // --- LÓGICA ---
+        angulo += velocidad_giro * dt;
         gestionar_cursor_raton();
     }
 
+    // --- LIMPIEZA ---
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+    free(arena_global.base);
     free(arena_escena.base);
+
     return 0;
 }

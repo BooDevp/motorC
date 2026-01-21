@@ -1,5 +1,6 @@
 #include "modelo.h"
 #include <ctype.h>
+#include <float.h> // Para FLT_MAX
 
 // Info
 void imprimir_info_modelo(Modelo *f)
@@ -185,8 +186,8 @@ void cargar_modelo(Modelo **modelo_actual, Uint64 *ultimo_clic, const Uint64 COO
         arena_reset(arena);
 
         // Cargamos el nuevo modelo
-        // char *ruta = "./assets/models/Handpopus.obj";
-        char *ruta = "./assets/models/Cubo.obj";
+        char *ruta = "./assets/models/Handpopus.obj";
+        // char *ruta = "./assets/models/Cubo.obj";
 
         Modelo *nuevo = get_modelo_obj(arena, ruta);
         if (nuevo)
@@ -207,65 +208,102 @@ static void swap_float(float *a, float *b)
     *b = temp;
 }
 
-static void dibujar_triangulo_relleno(SDL_Renderer *renderer, float x0, float y0, float x1, float y1, float x2, float y2)
+static void dibujar_triangulo_relleno_z(SDL_Renderer *renderer, float *z_buffer, int ancho_v, int alto_v,
+                                        float x0, float y0, float z0,
+                                        float x1, float y1, float z1,
+                                        float x2, float y2, float z2)
 {
-    // 1. Ordenar vértices por Y (y0 <= y1 <= y2)
-    if (y0 > y1) { swap_float(&x0, &x1); swap_float(&y0, &y1); }
-    if (y0 > y2) { swap_float(&x0, &x2); swap_float(&y0, &y2); }
-    if (y1 > y2) { swap_float(&x1, &x2); swap_float(&y1, &y2); }
-
-    // Evitar división por cero si el triángulo no tiene altura
-    float altura_total = y2 - y0;
-    if (altura_total < 0.0001f) return;
-
-    // 2. Cálculo de pendientes inversas (usando floats precisos)
-    float dx02 = (y2 - y0 > 0.0001f) ? (x2 - x0) / (y2 - y0) : 0;
-    float dx01 = (y1 - y0 > 0.0001f) ? (x1 - x0) / (y1 - y0) : 0;
-    float dx12 = (y2 - y1 > 0.0001f) ? (x2 - x1) / (y2 - y1) : 0;
-
-    // 3. Renderizado Scanline
-    // Iteramos solo por los píxeles que realmente están dentro del rango Y
-    int y_min = (int)ceilf(y0);
-    int y_max = (int)floorf(y2);
-
-    for (int y = y_min; y <= y_max; y++)
+    // 1. Ordenar por Y (y0 <= y1 <= y2)
+    if (y0 > y1)
     {
-        // xa siempre sigue el lado largo (v0 -> v2)
-        // Calculamos la distancia real desde el float y0 hasta el centro del píxel actual
-        float xa = x0 + (float)(y - y0) * dx02;
-        float xb;
+        swap_float(&x0, &x1);
+        swap_float(&y0, &y1);
+        swap_float(&z0, &z1);
+    }
+    if (y0 > y2)
+    {
+        swap_float(&x0, &x2);
+        swap_float(&y0, &y2);
+        swap_float(&z0, &z2);
+    }
+    if (y1 > y2)
+    {
+        swap_float(&x1, &x2);
+        swap_float(&y1, &y2);
+        swap_float(&z1, &z2);
+    }
 
-        // Determinamos si estamos en la mitad superior o inferior para xb
-        if (y < y1) {
-            xb = x0 + (float)(y - y0) * dx01;
-        } else {
-            xb = x1 + (float)(y - y1) * dx12;
+    if (y2 - y0 < 0.0001f)
+        return;
+
+    // 2. Pendientes inversas (X y Z)
+    float dx02 = (x2 - x0) / (y2 - y0);
+    float dz02 = (z2 - z0) / (y2 - y0);
+
+    float dx01 = (y1 - y0 > 0.0001f) ? (x1 - x0) / (y1 - y0) : 0;
+    float dz01 = (y1 - y0 > 0.0001f) ? (z1 - z0) / (y1 - y0) : 0;
+
+    float dx12 = (y2 - y1 > 0.0001f) ? (x2 - x1) / (y2 - y1) : 0;
+    float dz12 = (y2 - y1 > 0.0001f) ? (z2 - z1) / (y2 - y1) : 0;
+
+    // 3. Scanline de arriba a abajo
+    for (int y = (int)ceilf(y0); y <= (int)floorf(y2); y++)
+    {
+        float xa = x0 + (y - y0) * dx02;
+        float za = z0 + (y - y0) * dz02;
+        float xb, zb;
+
+        if (y < y1)
+        {
+            xb = x0 + (y - y0) * dx01;
+            zb = z0 + (y - y0) * dz01;
+        }
+        else
+        {
+            xb = x1 + (y - y1) * dx12;
+            zb = z1 + (y - y1) * dz12;
         }
 
-        // Convertir a enteros para el dibujo horizontal
-        int ix_a = (int)roundf(xa);
-        int ix_b = (int)roundf(xb);
+        if (xa > xb)
+        {
+            swap_float(&xa, &xb);
+            swap_float(&za, &zb);
+        }
 
-        // Ordenar X para que SDL_RenderLine no tenga problemas
-        if (ix_a > ix_b) { int t = ix_a; ix_a = ix_b; ix_b = t; }
+        int ix_inicio = (int)roundf(xa);
+        int ix_fin = (int)roundf(xb);
 
-        // Dibujar la línea horizontal del escaneo
-        SDL_RenderLine(renderer, (float)ix_a, (float)y, (float)ix_b, (float)y);
+        for (int x = ix_inicio; x <= ix_fin; x++)
+        {
+            if (x >= 0 && x < ancho_v && y >= 0 && y < alto_v)
+            {
+                // Interpolamos Z horizontalmente
+                float t = (ix_inicio == ix_fin) ? 0 : (float)(x - ix_inicio) / (ix_fin - ix_inicio);
+                float z_pixel = za + t * (zb - za);
+
+                int indice = y * ancho_v + x;
+                // PRUEBA DE PROFUNDIDAD
+                if (z_pixel < z_buffer[indice])
+                {
+                    z_buffer[indice] = z_pixel;
+                    SDL_RenderPoint(renderer, (float)x, (float)y);
+                }
+            }
+        }
     }
 }
 
-void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
+void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float *z_buffer, float angulo, float distancia_camara, int ventana_ancho, int ventana_alto, float escala)
 {
-    if (f == NULL) return;
+    if (f == NULL || z_buffer == NULL)
+        return;
 
-    // Definimos una dirección de luz (ej: viene desde la cámara y un poco arriba)
-    float luz[3] = {0.0f, 0.0f, -1.0f}; 
+    float luz[3] = {0.0f, 0.0f, -1.0f};
 
     for (int i = 0; i < f->n_caras; i++)
     {
         int idx[3] = {f->caras[i].v1, f->caras[i].v2, f->caras[i].v3};
-        float v_rotado[3][3]; // Para guardar X, Y, Z rotados
-        float px[3], py[3];
+        float v_rotado[3][3], px[3], py[3];
 
         for (int j = 0; j < 3; j++)
         {
@@ -276,38 +314,49 @@ void pintar_modelo(Modelo *f, SDL_Renderer *renderer, float angulo, float distan
             rotar_punto(&vx, &vy, &vz, angulo, 'y');
             vz += distancia_camara;
 
-            // Guardamos el 3D para la luz
             v_rotado[j][0] = vx;
             v_rotado[j][1] = vy;
             v_rotado[j][2] = vz;
-
             proyectar_a_pixel(vx, vy, vz, escala, escala, &px[j], &py[j], ventana_ancho, ventana_alto);
         }
 
-        // Backface culling (igual que antes)
         float cross = (px[1] - px[0]) * (py[2] - py[0]) - (py[1] - py[0]) * (px[2] - px[0]);
-
         if (cross > 0)
         {
-            // --- NUEVA LÓGICA DE ILUMINACIÓN ---
             float normal[3];
             calcular_normal(v_rotado[0], v_rotado[1], v_rotado[2], normal);
-            
             float intensidad = calcular_iluminacion(normal, luz);
-            
-            // Ajustamos el color verde (0 a 255) según la intensidad
-            // Añadimos un poco de "luz ambiental" (0.1) para que no sea negro total
             int color_v = (int)((intensidad * 0.9f + 0.1f) * 255);
-            
-            // Relleno con el nuevo brillo
-            SDL_SetRenderDrawColor(renderer, 0, color_v, 0, 255);
-            dibujar_triangulo_relleno(renderer, px[0], py[0], px[1], py[1], px[2], py[2]);
 
-            // Bordes un poco más oscuros para dar estilo
-            SDL_SetRenderDrawColor(renderer, 0, color_v / 2, 0, 255);
-            SDL_RenderLine(renderer, px[0], py[0], px[1], py[1]);
-            SDL_RenderLine(renderer, px[1], py[1], px[2], py[2]);
-            SDL_RenderLine(renderer, px[2], py[2], px[0], py[0]);
+            SDL_SetRenderDrawColor(renderer, 0, color_v, 0, 255);
+
+            // Llamamos a la versión con Z-Buffer
+            dibujar_triangulo_relleno_z(renderer, z_buffer, ventana_ancho, ventana_alto,
+                                        px[0], py[0], v_rotado[0][2],
+                                        px[1], py[1], v_rotado[1][2],
+                                        px[2], py[2], v_rotado[2][2]);
         }
+    }
+}
+
+float *inicializar_zbuffer(Arena *arena, int ancho, int alto)
+{
+    // Pedimos memoria a nuestra Arena
+    float *buffer = (float *)arena_push(arena, ancho * alto * sizeof(float));
+    if (buffer)
+    {
+        limpiar_zbuffer(buffer, ancho, alto);
+    }
+    return buffer;
+}
+
+void limpiar_zbuffer(float *z_buffer, int ancho, int alto)
+{
+    if (!z_buffer)
+        return;
+    // Llenamos el buffer con la distancia máxima (el "fondo" infinito)
+    for (int i = 0; i < ancho * alto; i++)
+    {
+        z_buffer[i] = FLT_MAX;
     }
 }
