@@ -13,7 +13,6 @@
 typedef struct { float m[16]; } Mat4;
 
 // --- MATEMÁTICAS ---
-
 void MatIdentidad(Mat4* m) {
     for (int i = 0; i < 16; i++) m->m[i] = 0.0f;
     m->m[0] = m->m[5] = m->m[10] = m->m[15] = 1.0f;
@@ -65,7 +64,6 @@ void MatrizCubo3D(float tiempo, float aspecto, Mat4* out) {
 }
 
 // --- SHADERS ---
-// (Tu función CrearShader está perfecta, no la toques)
 static SDL_GPUShader* CrearShader(SDL_GPUDevice* gpu, const char* ruta, SDL_GPUShaderStage stage, uint32_t num_uniforms) {
     size_t size = 0;
     void* code = SDL_LoadFile(ruta, &size);
