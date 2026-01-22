@@ -1,10 +1,16 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+// --- FUNCIONES DE APOYO ---
+
+// Carga el código binario SPIR-V y crea el objeto de shader en la GPU
 SDL_GPUShader* CargarShader(SDL_GPUDevice* gpu, const char* ruta, SDL_GPUShaderStage stage) {
     size_t tam;
     void* codigo = SDL_LoadFile(ruta, &tam);
-    if (!codigo) return NULL;
+    if (!codigo) {
+        SDL_Log("No se pudo leer el archivo: %s", ruta);
+        return NULL;
+    }
 
     SDL_GPUShaderCreateInfo info = {
         .code = codigo,
@@ -19,161 +25,123 @@ SDL_GPUShader* CargarShader(SDL_GPUDevice* gpu, const char* ruta, SDL_GPUShaderS
     return shader;
 }
 
-int main(int argc, char *argv[]) {
-    // 1. Inicializar solo Video
-    if (!SDL_Init(SDL_INIT_VIDEO)) return 1;
+// Crea un buffer de vértices y sube los datos a la VRAM (memoria de video)
+SDL_GPUBuffer* CrearBufferVertices(SDL_GPUDevice* gpu, float* vertices, size_t tam) {
+    // 1. Reservar espacio en la GPU
+    SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(gpu, &(SDL_GPUBufferCreateInfo){
+        .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
+        .size = tam
+    });
 
-    // 2. Crear ventana
-    SDL_Window *window = SDL_CreateWindow("Paso 1: Color Simple", 800, 600, 0);
-    if (!window) return 1;
-
-    // 3. Crear el dispositivo GPU (Vulkan por defecto en NVIDIA)
-    SDL_GPUDevice *gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, NULL);
-    if (!gpu) return 1;
-
-    // 4. Vincular la ventana a la GPU
-    SDL_ClaimWindowForGPUDevice(gpu, window);
-
-    bool ejecutando = true;
-    SDL_Event evento;
-
-    SDL_GPUCommandBuffer *copyCmd = SDL_AcquireGPUCommandBuffer(gpu);
-    SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(copyCmd);
-
-    float vertices[] = {
-         0.0f,  0.5f, 0.0f,  // Arriba
-        -0.5f, -0.5f, 0.0f,  // Izquierda
-         0.5f, -0.5f, 0.0f   // Derecha
-    };
-
-    // 1. Crear la descripción del buffer (¿Para qué es y cuánto mide?)
-    SDL_GPUBufferCreateInfo buffer_info = {
-        .usage = SDL_GPU_BUFFERUSAGE_VERTEX, // Es para vértices
-        .size = sizeof(vertices)             // Tamaño: 9 floats * 4 bytes = 36 bytes
-    };
-
-    // 2. Pedirle a la GPU que reserve ese espacio
-    SDL_GPUBuffer *vertexBuffer = SDL_CreateGPUBuffer(gpu, &buffer_info);
-
-    // 3. Crear un "Transfer Buffer" (El camión de mudanza)
-    // La GPU no nos deja escribir directo en vertexBuffer, 
-    // así que usamos un buffer intermedio para subir los datos.
-    SDL_GPUTransferBufferCreateInfo transfer_info = {
+    // 2. Usar un transfer buffer para la mudanza de datos
+    SDL_GPUTransferBuffer* staging = SDL_CreateGPUTransferBuffer(gpu, &(SDL_GPUTransferBufferCreateInfo){
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-        .size = sizeof(vertices)
-    };
-    SDL_GPUTransferBuffer *stagingBuffer = SDL_CreateGPUTransferBuffer(gpu, &transfer_info);
+        .size = tam
+    });
 
-    // 4. Copiar los datos de la CPU al "camión" (stagingBuffer)
-    float *dataPtr = (float*)SDL_MapGPUTransferBuffer(gpu, stagingBuffer, false);
-    SDL_memcpy(dataPtr, vertices, sizeof(vertices));
-    SDL_UnmapGPUTransferBuffer(gpu, stagingBuffer);
+    float* dataPtr = (float*)SDL_MapGPUTransferBuffer(gpu, staging, false);
+    SDL_memcpy(dataPtr, vertices, tam);
+    SDL_UnmapGPUTransferBuffer(gpu, staging);
 
-    SDL_UploadToGPUBuffer(
-        copyPass,
-        &(SDL_GPUTransferBufferLocation) { .transfer_buffer = stagingBuffer, .offset = 0 },
-        &(SDL_GPUBufferRegion) { .buffer = vertexBuffer, .size = sizeof(vertices), .offset = 0 },
-        false
-    );
+    // 3. Ejecutar la copia inmediata
+    SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(gpu);
+    SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(cmd);
+    SDL_UploadToGPUBuffer(copy, 
+        &(SDL_GPUTransferBufferLocation){.transfer_buffer = staging},
+        &(SDL_GPUBufferRegion){.buffer = buffer, .size = tam}, 
+        false);
+    SDL_EndGPUCopyPass(copy);
+    SDL_SubmitGPUCommandBuffer(cmd);
 
-    SDL_EndGPUCopyPass(copyPass);
-    SDL_SubmitGPUCommandBuffer(copyCmd);
+    SDL_ReleaseGPUTransferBuffer(gpu, staging);
+    return buffer;
+}
 
-    // Ya no necesitamos el "camión", los datos ya están en el almacén de la GPU
-    SDL_ReleaseGPUTransferBuffer(gpu, stagingBuffer);
+// Configura la "receta" de cómo se deben dibujar los datos
+SDL_GPUGraphicsPipeline* CrearPipeline(SDL_GPUDevice* gpu, SDL_Window* window) {
+    SDL_GPUShader* vsh = CargarShader(gpu, "src/shaders/simple.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX);
+    SDL_GPUShader* fsh = CargarShader(gpu, "src/shaders/simple.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT);
 
-    // 1. Cargamos los shaders compilados (asegúrate de haberlos compilado a .spv)
-    SDL_GPUShader* vertexShader = CargarShader(gpu, "src/shaders/simple.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX);
-    SDL_GPUShader* fragmentShader = CargarShader(gpu, "src/shaders/simple.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT);
+    if (!vsh || !fsh) return NULL;
 
-    // Comprobación de seguridad (para que no se cierre sin avisar)
-    if (!vertexShader || !fragmentShader) {
-        SDL_Log("¡ERROR! No se encontraron los archivos .spv en src/shaders/");
-        return 1;
-    }
-
-    // 2. Creamos la "Receta" completa
-    SDL_GPUGraphicsPipelineCreateInfo pipInfo = {
+    SDL_GPUGraphicsPipelineCreateInfo info = {
         .target_info = {
             .num_color_targets = 1,
             .color_target_descriptions = (SDL_GPUColorTargetDescription[]){{
                 .format = SDL_GetGPUSwapchainTextureFormat(gpu, window)
             }}
         },
-        .vertex_shader = vertexShader,
-        .fragment_shader = fragmentShader,
-        .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, // ¡Aquí decimos que es un triángulo!
+        .vertex_shader = vsh,
+        .fragment_shader = fsh,
+        .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
         .vertex_input_state = {
-            .num_vertex_buffers = 1, // Cambiado de num_vertex_buffer_descriptions
-            .vertex_buffer_descriptions = (SDL_GPUVertexBufferDescription[]){{
-                .slot = 0,
-                .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
-                .instance_step_rate = 0,
-                .pitch = sizeof(float) * 3
-            }},
+            .num_vertex_buffers = 1,
+            .vertex_buffer_descriptions = (SDL_GPUVertexBufferDescription[]){{.slot = 0, .pitch = sizeof(float) * 3}},
             .num_vertex_attributes = 1,
-            .vertex_attributes = (SDL_GPUVertexAttribute[]){{
-                .buffer_slot = 0,
-                .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
-                .location = 0,
-                .offset = 0
-            }}
+            .vertex_attributes = (SDL_GPUVertexAttribute[]){{.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, .location = 0}}
         }
     };
 
-    SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipInfo);
-    if (!pipeline) {
-        SDL_Log("¡ERROR! No se pudo crear el Pipeline. Revisa los shaders.");
-        return 1;
-    }
+    SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &info);
+    
+    SDL_ReleaseGPUShader(gpu, vsh);
+    SDL_ReleaseGPUShader(gpu, fsh);
+    
+    return pipeline;
+}
 
-    // Ya podemos liberar los shaders individuales, el pipeline ya los tiene dentro
-    SDL_ReleaseGPUShader(gpu, vertexShader);
-    SDL_ReleaseGPUShader(gpu, fragmentShader);
+// --- MAIN PRINCIPAL ---
 
-    while (ejecutando) {
-        while (SDL_PollEvent(&evento)) {
-            if (evento.type == SDL_EVENT_QUIT) ejecutando = false;
+int main(int argc, char *argv[]) {
+    SDL_Init(SDL_INIT_VIDEO);
+
+    SDL_Window* window = SDL_CreateWindow("Motor v2 - Triangulo Limpio", 800, 600, 0);
+    SDL_GPUDevice* gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, NULL);
+    SDL_ClaimWindowForGPUDevice(gpu, window);
+
+    // DATOS: Definimos y subimos
+    float vertices[] = { 0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
+    SDL_GPUBuffer* vertexBuffer = CrearBufferVertices(gpu, vertices, sizeof(vertices));
+    
+    // RECETA: Creamos el pipeline
+    SDL_GPUGraphicsPipeline* pipeline = CrearPipeline(gpu, window);
+
+    bool corriendo = true;
+    SDL_Event ev;
+
+    while (corriendo) {
+        while (SDL_PollEvent(&ev)) {
+            if (ev.type == SDL_EVENT_QUIT) corriendo = false;
         }
 
-        // --- RENDERIZADO ---
-       SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gpu);
-    if (cmd) {
-        SDL_GPUTexture *textura_swapchain;
-        if (SDL_AcquireGPUSwapchainTexture(cmd, window, &textura_swapchain, NULL, NULL)) {
-            
-            SDL_GPUColorTargetInfo color_info = {
-                .texture = textura_swapchain,
-                .clear_color = { 0.1f, 0.15f, 0.2f, 1.0f }, 
-                .load_op = SDL_GPU_LOADOP_CLEAR,
-                .store_op = SDL_GPU_STOREOP_STORE
-            };
+        SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(gpu);
+        if (cmd) {
+            SDL_GPUTexture* swapchainTex;
+            if (SDL_AcquireGPUSwapchainTexture(cmd, window, &swapchainTex, NULL, NULL)) {
+                
+                SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(cmd, &(SDL_GPUColorTargetInfo){
+                    .texture = swapchainTex,
+                    .clear_color = { 0.1f, 0.15f, 0.2f, 1.0f },
+                    .load_op = SDL_GPU_LOADOP_CLEAR,
+                    .store_op = SDL_GPU_STOREOP_STORE
+                }, 1, NULL);
 
-            SDL_GPURenderPass *pass = SDL_BeginGPURenderPass(cmd, &color_info, 1, NULL);
-            
-            // --- AQUÍ OCURRE LA MAGIA ---
-            // 1. Decimos qué receta usar
-            SDL_BindGPUGraphicsPipeline(pass, pipeline);
-            
-            // 2. Decimos qué datos usar (el buffer que llenamos al principio)
-            SDL_BindGPUVertexBuffers(pass, 0, &(SDL_GPUBufferBinding){ .buffer = vertexBuffer, .offset = 0 }, 1);
-            
-            // 3. ¡Dibuja! (3 vértices, 1 instancia)
-            SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
-            // ----------------------------
+                SDL_BindGPUGraphicsPipeline(pass, pipeline);
+                SDL_BindGPUVertexBuffers(pass, 0, &(SDL_GPUBufferBinding){.buffer = vertexBuffer}, 1);
+                SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
 
-            SDL_EndGPURenderPass(pass);
+                SDL_EndGPURenderPass(pass);
+            }
+            SDL_SubmitGPUCommandBuffer(cmd);
         }
-        SDL_SubmitGPUCommandBuffer(cmd);
+        SDL_Delay(16);
     }
 
-        SDL_Delay(16); // Esto limita el programa a unos 60 FPS
-    }
-
-    // Limpieza
+    // LIMPIEZA
+    SDL_ReleaseGPUGraphicsPipeline(gpu, pipeline);
+    SDL_ReleaseGPUBuffer(gpu, vertexBuffer);
     SDL_ReleaseWindowFromGPUDevice(gpu, window);
     SDL_DestroyGPUDevice(gpu);
-    SDL_DestroyWindow(window);
     SDL_Quit();
 
     return 0;
