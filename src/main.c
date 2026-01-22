@@ -2,7 +2,21 @@
 #include <SDL3/SDL_main.h>
 #include <stdbool.h>
 
-static SDL_GPUShader* CargarShader(SDL_GPUDevice* gpu, const char* ruta, SDL_GPUShaderStage stage) {
+typedef struct { float m[16]; } Mat4;
+
+void MatrizRotacionZ(float angulo, Mat4* out) {
+    float s = SDL_sinf(angulo);
+    float c = SDL_cosf(angulo);
+    // Inicializamos todo a 0
+    for(int i=0; i<16; i++) out->m[i] = 0;
+    
+    // Matriz de rotación 2D (en el eje Z)
+    out->m[0] = c;  out->m[1] = -s;
+    out->m[4] = s;  out->m[5] = c;
+    out->m[10] = 1; out->m[15] = 1;
+}
+
+static SDL_GPUShader* CargarShader(SDL_GPUDevice* gpu, const char* ruta, SDL_GPUShaderStage stage, uint32_t num_uniforms) {
     size_t size = 0;
     void* code = SDL_LoadFile(ruta, &size);
     if (!code) {
@@ -10,8 +24,12 @@ static SDL_GPUShader* CargarShader(SDL_GPUDevice* gpu, const char* ruta, SDL_GPU
         return NULL;
     }
     SDL_GPUShaderCreateInfo info = {
-        .code = code, .code_size = size, .entrypoint = "main",
-        .format = SDL_GPU_SHADERFORMAT_SPIRV, .stage = stage
+        .code = code, 
+        .code_size = size, 
+        .entrypoint = "main",
+        .format = SDL_GPU_SHADERFORMAT_SPIRV, 
+        .stage = stage,
+        .num_uniform_buffers = num_uniforms // <--- AQUÍ está el secreto
     };
     SDL_GPUShader* shader = SDL_CreateGPUShader(gpu, &info);
     SDL_free(code);
@@ -28,8 +46,8 @@ int main(int argc, char **argv) {
 
     SDL_ClaimWindowForGPUDevice(gpu, window);
 
-    SDL_GPUShader* vsh = CargarShader(gpu, "src/shaders/simple.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX);
-    SDL_GPUShader* fsh = CargarShader(gpu, "src/shaders/simple.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT);
+    SDL_GPUShader* vsh = CargarShader(gpu, "src/shaders/simple.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX,1);    
+    SDL_GPUShader* fsh = CargarShader(gpu, "src/shaders/simple.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT,0);
     if (!vsh || !fsh) return 1;
 
     SDL_GPUGraphicsPipelineCreateInfo pipeInfo = {
@@ -102,7 +120,7 @@ int main(int argc, char **argv) {
 
         SDL_GPUTexture* swapTex;
         uint32_t w, h;
-        // Acquire devuelve true si hay una textura lista para dibujar
+        
         if (SDL_AcquireGPUSwapchainTexture(cmd, window, &swapTex, &w, &h)) {
             if (swapTex != NULL) {
                 SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(cmd, &(SDL_GPUColorTargetInfo){
@@ -114,13 +132,21 @@ int main(int argc, char **argv) {
 
                 SDL_BindGPUGraphicsPipeline(pass, pipeline);
                 SDL_BindGPUVertexBuffers(pass, 0, &(SDL_GPUBufferBinding){ .buffer = vbo, .offset = 0 }, 1);
+
+                // --- BLOQUE DE MOVIMIENTO ---
+                Mat4 matriz;
+                float tiempo = SDL_GetTicks() / 1000.0f; 
+                MatrizRotacionZ(tiempo, &matriz);
+                
+                // Enviamos la matriz al slot 0 del Vertex Shader
+                SDL_PushGPUVertexUniformData(cmd, 0, &matriz, sizeof(Mat4));
+                // ----------------------------
+
                 SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
                 SDL_EndGPURenderPass(pass);
             }
-            // Importante: Solo enviamos el comando si adquirimos textura
             SDL_SubmitGPUCommandBuffer(cmd);
         } else {
-            // Si no hay swapchain (ventana minimizada, etc), liberamos el comando sin hacer nada
             SDL_CancelGPUCommandBuffer(cmd);
         }
     }
