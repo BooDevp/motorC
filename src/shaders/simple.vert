@@ -1,11 +1,6 @@
 #version 450
-
 layout(location = 0) in vec3 inPos;
 
-layout(push_constant) uniform Constants {
-    mat4 mvp; 
-} pc;
-
 void main() {
-    gl_Position = pc.mvp * vec4(inPos, 1.0);
+    gl_Position = vec4(inPos, 1.0);
 }
