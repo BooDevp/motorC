@@ -1,8 +1,11 @@
-#version 450
+#version 450 core
+in vec3 ourColor;
+out vec4 FragColor;
 
-layout(location = 0) in vec3 fragColor;
-layout(location = 0) out vec4 outColor;
+uniform float u_time; // Variable que controlaremos desde C
 
 void main() {
-    outColor = vec4(fragColor, 1.0);
+    // Mezclamos el color del vértice con el tiempo para que parpadee
+    float brightness = (sin(u_time) * 0.5) + 0.5;
+    FragColor = vec4(ourColor * brightness, 1.0);
 }
