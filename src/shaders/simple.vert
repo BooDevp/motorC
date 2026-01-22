@@ -5,7 +5,7 @@ layout(location = 1) in vec3 inColor;
 layout(location = 0) out vec3 fragColor;
 
 void main() {
-    // Multiplicamos la matriz por la posición
+    // IMPORTANTE: En Vulkan, si no ves nada, prueba a no invertir la Y primero.
     gl_Position = mvp * vec4(inPos, 1.0);
     fragColor = inColor;
 }
