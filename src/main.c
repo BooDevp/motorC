@@ -401,8 +401,7 @@ void setup_matrices(GraphicsState* gs, int width, int height, float rotation_ang
         glUniformMatrix4fv(gs->mvp_location, 1, GL_FALSE, mvp);
     }
     
-    glUseProgram(0);
-    glUseProgram(0);
+    glUseProgram(0);    
     // debug_log("Matrices configuradas..."); // Comentado para no saturar el log cada frame
 }
 
