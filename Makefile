@@ -1,20 +1,33 @@
+# ============================================================================
+# MOTOR GRÁFICO CON OPENGL 3.3 Y SDL3 - WINDOWS
+# ============================================================================
+
 # Compilador y Flags
 CC = gcc
-# Añadimos -I./include para que encuentre SDL3/SDL.h
-CFLAGS = -I./include -Wall -std=c11
-# Añadimos -L./lib y -lopengl32 para que NVIDIA pueda hablar con C
+CFLAGS = -I./include -Wall -Wextra -std=c11 -g
 LDFLAGS = -L./lib -lSDL3 -lopengl32 -lm
 
-# BUSQUEDA AUTOMÁTICA:
-SRC = $(wildcard src/*.c)
+# Archivos fuente
+SRC = src/main.c
 TARGET = motor.exe
 
-# REGLA PRINCIPAL
-# Eliminamos la dependencia de glslangValidator porque OpenGL usa texto plano (.vert/.frag)
+# Regla principal
 all: $(TARGET)
 
 $(TARGET): $(SRC)
+	@echo ========================================
+	@echo COMPILANDO MOTOR OPENGL 3.3 Windows
+	@echo ========================================
 	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(LDFLAGS)
+	@echo Compilación completada: $(TARGET)
+	@echo Ejecuta: $(TARGET)
 
+# Limpieza
 clean:
-	del /q $(TARGET)
+	@echo Limpiando proyecto...
+	del /q $(TARGET) 2>nul || true
+
+run: $(TARGET)
+	$(TARGET)
+
+.PHONY: all clean run
