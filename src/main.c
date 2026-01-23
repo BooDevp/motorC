@@ -16,7 +16,7 @@
 
 #define WINDOW_WIDTH    800
 #define WINDOW_HEIGHT   600
-#define WINDOW_TITLE    "Motor OpenGL 3.3 - Cubo Estático"
+#define WINDOW_TITLE    "Motor OpenGL 3.3"
 
 #define CAMERA_FOV      45.0f
 #define CAMERA_NEAR     0.1f
@@ -27,6 +27,8 @@
 #define CLEAR_COLOR_G   0.15f
 #define CLEAR_COLOR_B   0.2f
 #define CLEAR_COLOR_A   1.0f
+
+#define ROTATION_SPEED_Y 1.0f // Grados por frame
 
 // ============================================================================
 // ESTRUCTURAS
@@ -43,6 +45,7 @@ typedef struct {
     bool wireframe;
     bool show_debug;
     bool running;
+    float rotation_y;
 } AppState;
 
 // ============================================================================
@@ -284,9 +287,56 @@ bool create_cube_geometry(GraphicsState* gs) {
 }
 
 /**
+ * Crea una matriz de rotación sobre el eje Y
+ * Didáctico: Explica cómo se construye la matriz
+ */
+void calculate_rotation_matrix_y(float angle_deg, float* matrix) {
+    // Convertir grados a radianes
+    // 360 grados = 2 * PI radianes -> 1 grado = PI / 180 radianes
+    float radians = angle_deg * (3.14159265f / 180.0f);
+    
+    // Calcular seno y coseno una sola vez
+    float c = cosf(radians);
+    float s = sinf(radians);
+    
+    // Construcción de la Matriz de Rotación Y (Column-Major para OpenGL)
+    // |  cos(θ)   0   sin(θ)   0  |
+    // |    0      1     0      0  |
+    // | -sin(θ)   0   cos(θ)   0  |
+    // |    0      0     0      1  |
+    
+    // Índice: Columna + Fila * 4 (si es 1D array representando matriz 4x4)
+    // Pero aquí inicializamos manual:
+    
+    // Columna 1
+    matrix[0] = c;
+    matrix[1] = 0.0f;
+    matrix[2] = -s;
+    matrix[3] = 0.0f;
+    
+    // Columna 2
+    matrix[4] = 0.0f;
+    matrix[5] = 1.0f;
+    matrix[6] = 0.0f;
+    matrix[7] = 0.0f;
+    
+    // Columna 3
+    matrix[8] = s;
+    matrix[9] = 0.0f;
+    matrix[10] = c;
+    matrix[11] = 0.0f;
+    
+    // Columna 4 (Posición)
+    matrix[12] = 0.0f;
+    matrix[13] = 0.0f;
+    matrix[14] = 0.0f;
+    matrix[15] = 1.0f;
+}
+
+/**
  * Configura las matrices (MVP)
  */
-void setup_matrices(GraphicsState* gs, int width, int height) {
+void setup_matrices(GraphicsState* gs, int width, int height, float rotation_angle) {
     glUseProgram(gs->program);
     
     // Matriz de proyección (perspectiva)
@@ -309,13 +359,9 @@ void setup_matrices(GraphicsState* gs, int width, int height) {
         0, 0, -CAMERA_DISTANCE, 1
     };
     
-    // Matriz modelo (identidad - cubo en origen)
-    float model[16] = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    };
+    // Matriz modelo (con rotación)
+    float model[16];
+    calculate_rotation_matrix_y(rotation_angle, model);
     
     // Calcular MVP: Proyección * Vista * Modelo
     // Nota: OpenGL usa matrices column-major.
@@ -356,7 +402,8 @@ void setup_matrices(GraphicsState* gs, int width, int height) {
     }
     
     glUseProgram(0);
-    debug_log("Matrices configuradas: %dx%d, FOV=%.1f, Distancia=%.1f", width, height, CAMERA_FOV, CAMERA_DISTANCE);
+    glUseProgram(0);
+    // debug_log("Matrices configuradas..."); // Comentado para no saturar el log cada frame
 }
 
 /**
@@ -415,13 +462,14 @@ void cleanup(SDL_Window* window, GraphicsState* gs) {
 
 int main(int argc, char* argv[]) {
     printf("========================================\n");
-    printf("MOTOR OPENGL 3.3 - CUBO ESTÁTICO (Windows)\n");
+    printf("MOTOR OPENGL 3.3 (Windows)\n");
     printf("========================================\n\n");
     
     AppState app = {
         .wireframe = false,
         .show_debug = true,
-        .running = true
+        .running = true,
+        .rotation_y = 0.0f
     };
     
     GraphicsState gs = {0};
@@ -470,7 +518,7 @@ int main(int argc, char* argv[]) {
     // 5. CONFIGURAR MATRICES
     int width, height;
     SDL_GetWindowSizeInPixels(window, &width, &height);
-    setup_matrices(&gs, width, height);
+    setup_matrices(&gs, width, height, app.rotation_y);
     
     debug_log("\n========================================");
     debug_log("MOTOR LISTO");
@@ -505,12 +553,19 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_EVENT_WINDOW_RESIZED) {
                 SDL_GetWindowSizeInPixels(window, &width, &height);
                 glViewport(0, 0, width, height);
-                setup_matrices(&gs, width, height);
+                setup_matrices(&gs, width, height, app.rotation_y);
                 if (app.show_debug) {
                     debug_log("Ventana redimensionada: %dx%d", width, height);
                 }
             }
         }
+        
+        // Actualizar rotación
+        app.rotation_y += ROTATION_SPEED_Y;
+        if (app.rotation_y >= 360.0f) app.rotation_y -= 360.0f;
+        
+        // Actualizar matrices cada frame
+        setup_matrices(&gs, width, height, app.rotation_y);
         
         render_frame(&gs, &app);
         SDL_GL_SwapWindow(window);
