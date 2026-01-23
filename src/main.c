@@ -8,15 +8,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#include <stddef.h>
-
-// Incluir OpenGL headers para Windows
-#ifdef _WIN32
-#include <windows.h>
-#include <GL/gl.h>
-#else
-#include <SDL3/SDL_opengl.h>
-#endif
+#include "gl_headers.h"
 
 // ============================================================================
 // CONSTANTES CONFIGURABLES
@@ -35,102 +27,6 @@
 #define CLEAR_COLOR_G   0.15f
 #define CLEAR_COLOR_B   0.2f
 #define CLEAR_COLOR_A   1.0f
-
-// ============================================================================
-// PROTOTIPOS DE FUNCIONES OPENGL
-// ============================================================================
-
-// Tipos básicos (si no están definidos)
-#ifndef GLuint
-typedef unsigned int GLuint;
-typedef int GLint;
-typedef unsigned char GLboolean;
-typedef float GLfloat;
-typedef char GLchar;
-typedef ptrdiff_t GLsizeiptr;
-typedef ptrdiff_t GLintptr;
-#endif
-
-// Constantes de OpenGL 3.3+ (para Windows)
-#ifndef GL_ARRAY_BUFFER
-#define GL_ARRAY_BUFFER 0x8892
-#endif
-#ifndef GL_STATIC_DRAW
-#define GL_STATIC_DRAW 0x88E4
-#endif
-#ifndef GL_VERTEX_SHADER
-#define GL_VERTEX_SHADER 0x8B31
-#endif
-#ifndef GL_FRAGMENT_SHADER
-#define GL_FRAGMENT_SHADER 0x8B30
-#endif
-#ifndef GL_COMPILE_STATUS
-#define GL_COMPILE_STATUS 0x8B81
-#endif
-#ifndef GL_LINK_STATUS
-#define GL_LINK_STATUS 0x8B82
-#endif
-
-// Funciones de shaders (las cargaremos dinámicamente)
-typedef GLuint (__stdcall *PFNGLCREATESHADERPROC)(GLenum type);
-typedef void (__stdcall *PFNGLSHADERSOURCEPROC)(GLuint shader, GLsizei count, const GLchar** string, const GLint* length);
-typedef void (__stdcall *PFNGLCOMPILESHADERPROC)(GLuint shader);
-typedef void (__stdcall *PFNGLGETSHADERIVPROC)(GLuint shader, GLenum pname, GLint* params);
-typedef void (__stdcall *PFNGLGETSHADERINFOLOGPROC)(GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
-typedef void (__stdcall *PFNGLDELETESHADERPROC)(GLuint shader);
-
-// Funciones de programas
-typedef GLuint (__stdcall *PFNGLCREATEPROGRAMPROC)(void);
-typedef void (__stdcall *PFNGLATTACHSHADERPROC)(GLuint program, GLuint shader);
-typedef void (__stdcall *PFNGLLINKPROGRAMPROC)(GLuint program);
-typedef void (__stdcall *PFNGLGETPROGRAMIVPROC)(GLuint program, GLenum pname, GLint* params);
-typedef void (__stdcall *PFNGLGETPROGRAMINFOLOGPROC)(GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
-typedef void (__stdcall *PFNGLDELETEPROGRAMPROC)(GLuint program);
-typedef void (__stdcall *PFNGLUSEPROGRAMPROC)(GLuint program);
-typedef GLint (__stdcall *PFNGLGETUNIFORMLOCATIONPROC)(GLuint program, const GLchar* name);
-typedef void (__stdcall *PFNGLUNIFORMMATRIX4FVPROC)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
-
-// Funciones de buffers y VAOs
-typedef void (__stdcall *PFNGLGENVERTEXARRAYSPROC)(GLsizei n, GLuint* arrays);
-typedef void (__stdcall *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
-typedef void (__stdcall *PFNGLGENBUFFERSPROC)(GLsizei n, GLuint* buffers);
-typedef void (__stdcall *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
-typedef void (__stdcall *PFNGLBUFFERDATAPROC)(GLenum target, GLsizeiptr size, const void* data, GLenum usage);
-typedef void (__stdcall *PFNGLVERTEXATTRIBPOINTERPROC)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void* pointer);
-typedef void (__stdcall *PFNGLENABLEVERTEXATTRIBARRAYPROC)(GLuint index);
-typedef void (__stdcall *PFNGLDELETEVERTEXARRAYSPROC)(GLsizei n, const GLuint* arrays);
-typedef void (__stdcall *PFNGLDELETEBUFFERSPROC)(GLsizei n, const GLuint* buffers);
-
-// ============================================================================
-// VARIABLES GLOBALES OPENGL
-// ============================================================================
-
-PFNGLCREATESHADERPROC glCreateShader = NULL;
-PFNGLSHADERSOURCEPROC glShaderSource = NULL;
-PFNGLCOMPILESHADERPROC glCompileShader = NULL;
-PFNGLGETSHADERIVPROC glGetShaderiv = NULL;
-PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog = NULL;
-PFNGLDELETESHADERPROC glDeleteShader = NULL;
-
-PFNGLCREATEPROGRAMPROC glCreateProgram = NULL;
-PFNGLATTACHSHADERPROC glAttachShader = NULL;
-PFNGLLINKPROGRAMPROC glLinkProgram = NULL;
-PFNGLGETPROGRAMIVPROC glGetProgramiv = NULL;
-PFNGLGETPROGRAMINFOLOGPROC glGetProgramInfoLog = NULL;
-PFNGLDELETEPROGRAMPROC glDeleteProgram = NULL;
-PFNGLUSEPROGRAMPROC glUseProgram = NULL;
-PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation = NULL;
-PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv = NULL;
-
-PFNGLGENVERTEXARRAYSPROC glGenVertexArrays = NULL;
-PFNGLBINDVERTEXARRAYPROC glBindVertexArray = NULL;
-PFNGLGENBUFFERSPROC glGenBuffers = NULL;
-PFNGLBINDBUFFERPROC glBindBuffer = NULL;
-PFNGLBUFFERDATAPROC glBufferData = NULL;
-PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer = NULL;
-PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray = NULL;
-PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays = NULL;
-PFNGLDELETEBUFFERSPROC glDeleteBuffers = NULL;
 
 // ============================================================================
 // ESTRUCTURAS
@@ -171,68 +67,6 @@ static const char* FRAGMENT_SHADER_SOURCE =
     "void main() {\n"
     "    outColor = vec4(fragColor, 1.0);\n"
     "}\n";
-
-// ============================================================================
-// FUNCIONES AUXILIARES
-// ============================================================================
-
-void debug_log(const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    vprintf(format, args);
-    printf("\n");
-    va_end(args);
-}
-
-// ============================================================================
-// FUNCIONES DE CARGA OPENGL
-// ============================================================================
-
-/**
- * Carga todas las funciones de OpenGL usando SDL_GL_GetProcAddress
- */
-bool load_opengl_functions(void) {
-    debug_log("Cargando funciones de OpenGL...");
-    
-    // Funciones de shaders
-    glCreateShader = (PFNGLCREATESHADERPROC)SDL_GL_GetProcAddress("glCreateShader");
-    glShaderSource = (PFNGLSHADERSOURCEPROC)SDL_GL_GetProcAddress("glShaderSource");
-    glCompileShader = (PFNGLCOMPILESHADERPROC)SDL_GL_GetProcAddress("glCompileShader");
-    glGetShaderiv = (PFNGLGETSHADERIVPROC)SDL_GL_GetProcAddress("glGetShaderiv");
-    glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)SDL_GL_GetProcAddress("glGetShaderInfoLog");
-    glDeleteShader = (PFNGLDELETESHADERPROC)SDL_GL_GetProcAddress("glDeleteShader");
-    
-    // Funciones de programas
-    glCreateProgram = (PFNGLCREATEPROGRAMPROC)SDL_GL_GetProcAddress("glCreateProgram");
-    glAttachShader = (PFNGLATTACHSHADERPROC)SDL_GL_GetProcAddress("glAttachShader");
-    glLinkProgram = (PFNGLLINKPROGRAMPROC)SDL_GL_GetProcAddress("glLinkProgram");
-    glGetProgramiv = (PFNGLGETPROGRAMIVPROC)SDL_GL_GetProcAddress("glGetProgramiv");
-    glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)SDL_GL_GetProcAddress("glGetProgramInfoLog");
-    glDeleteProgram = (PFNGLDELETEPROGRAMPROC)SDL_GL_GetProcAddress("glDeleteProgram");
-    glUseProgram = (PFNGLUSEPROGRAMPROC)SDL_GL_GetProcAddress("glUseProgram");
-    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)SDL_GL_GetProcAddress("glGetUniformLocation");
-    glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC)SDL_GL_GetProcAddress("glUniformMatrix4fv");
-    
-    // Funciones de buffers y VAOs
-    glGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC)SDL_GL_GetProcAddress("glGenVertexArrays");
-    glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)SDL_GL_GetProcAddress("glBindVertexArray");
-    glGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffers");
-    glBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBuffer");
-    glBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
-    glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC)SDL_GL_GetProcAddress("glVertexAttribPointer");
-    glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC)SDL_GL_GetProcAddress("glEnableVertexAttribArray");
-    glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)SDL_GL_GetProcAddress("glDeleteVertexArrays");
-    glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
-    
-    // Verificar funciones críticas
-    if (!glCreateShader || !glCreateProgram || !glGenVertexArrays || !glGenBuffers) {
-        debug_log("ERROR: No se pudieron cargar funciones críticas de OpenGL");
-        return false;
-    }
-    
-    debug_log("Funciones de OpenGL cargadas correctamente");
-    return true;
-}
 
 // ============================================================================
 // FUNCIONES DEL MOTOR

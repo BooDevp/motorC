@@ -1,5 +1,5 @@
 # ============================================================================
-# MOTOR GRÁFICO CON OPENGL 3.3 Y SDL3 - WINDOWS
+# MOTOR GRÁFICO CON SDL3 - CONFIGURACIÓN AUTOMÁTICA
 # ============================================================================
 
 # Compilador y Flags
@@ -7,27 +7,40 @@ CC = gcc
 CFLAGS = -I./include -Wall -Wextra -std=c11 -g
 LDFLAGS = -L./lib -lSDL3 -lopengl32 -lm
 
-# Archivos fuente
-SRC = src/main.c
+# 1. BUSCAR ARCHIVOS AUTOMÁTICAMENTE
+# Buscamos todos los archivos .c dentro de la carpeta src
+SRC = $(wildcard src/*.c)
+
+# 2. GENERAR LISTA DE OBJETOS (.o)
+# Esto convierte, por ejemplo, src/main.c en src/main.o
+OBJ = $(SRC:.c=.o)
+
 TARGET = motor.exe
 
 # Regla principal
 all: $(TARGET)
 
-$(TARGET): $(SRC)
+# Linkado final
+$(TARGET): $(OBJ)
 	@echo ========================================
-	@echo COMPILANDO MOTOR OPENGL 3.3 Windows
+	@echo LINKANDO: $@
 	@echo ========================================
-	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(LDFLAGS)
-	@echo Compilación completada: $(TARGET)
-	@echo Ejecuta: $(TARGET)
+	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS)
+	@echo Compilacion completada.
 
-# Limpieza
+# Regla para compilar cada archivo .c en un .o
+# Se activa automáticamente si el .c es más nuevo que el .o
+%.o: %.c
+	@echo Compilando fuente: $<
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Limpieza (Windows)
 clean:
 	@echo Limpiando proyecto...
-	del /q $(TARGET) 2>nul || true
+	del /q src\*.o $(TARGET) 2>nul || true
 
 run: $(TARGET)
-	$(TARGET)
+	@echo Ejecutando...
+	.\$(TARGET)
 
 .PHONY: all clean run
