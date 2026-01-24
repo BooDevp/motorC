@@ -9,6 +9,10 @@
 #include <stdbool.h>
 #include <math.h>
 #include "gl_headers.h"
+#include "gestion_memoria.h"
+
+#define FAST_OBJ_IMPLEMENTATION 
+#include "fast_obj.h"
 
 // ============================================================================
 // CONSTANTES CONFIGURABLES
@@ -21,14 +25,16 @@
 #define CAMERA_FOV      45.0f
 #define CAMERA_NEAR     0.1f
 #define CAMERA_FAR      100.0f
-#define CAMERA_DISTANCE 5.0f
+#define CAMERA_DISTANCE 4.0f
 
-#define CLEAR_COLOR_R   0.1f
-#define CLEAR_COLOR_G   0.15f
-#define CLEAR_COLOR_B   0.2f
+#define CLEAR_COLOR_R   1.0f
+#define CLEAR_COLOR_G   1.0f
+#define CLEAR_COLOR_B   1.0f
 #define CLEAR_COLOR_A   1.0f
 
-#define ROTATION_SPEED_Y 1.0f // Grados por frame
+#define ROTATION_SPEED_Y 1.0f
+
+#define ARENA_SIZE_MB 10
 
 // ============================================================================
 // ESTRUCTURAS
@@ -42,8 +48,7 @@ typedef struct {
 } GraphicsState;
 
 typedef struct {
-    bool wireframe;
-    bool show_debug;
+    bool wireframe;    
     bool running;
     float rotation_y;
 } AppState;
@@ -55,20 +60,24 @@ typedef struct {
 static const char* VERTEX_SHADER_SOURCE = 
     "#version 330 core\n"
     "layout(location = 0) in vec3 aPos;\n"
-    "layout(location = 1) in vec3 aColor;\n"
+    "layout(location = 1) in vec3 aNormal;\n"
     "uniform mat4 uMVP;\n"
-    "out vec3 fragColor;\n"
+    "out vec3 vNormal;\n"
     "void main() {\n"
     "    gl_Position = uMVP * vec4(aPos, 1.0);\n"
-    "    fragColor = aColor;\n"
+    "    vNormal = aNormal;\n"
     "}\n";
 
 static const char* FRAGMENT_SHADER_SOURCE = 
     "#version 330 core\n"
-    "in vec3 fragColor;\n"
+    "in vec3 vNormal;\n"
     "out vec4 outColor;\n"
     "void main() {\n"
-    "    outColor = vec4(fragColor, 1.0);\n"
+    "    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));\n"
+    "    vec3 n = normalize(vNormal);\n"
+    "    float diff = max(dot(n, lightDir), 0.2);\n"
+    "    vec3 objectColor = vec3(0.6, 0.7, 0.9);\n"
+    "    outColor = vec4(objectColor * diff, 1.0);\n"
     "}\n";
 
 // ============================================================================
@@ -206,87 +215,6 @@ GLuint create_shader_program(void) {
 }
 
 /**
- * Crea la geometría del cubo
- */
-bool create_cube_geometry(GraphicsState* gs) {
-    // Vértices del cubo: posición (x,y,z) + color (r,g,b)
-    float vertices[] = {
-        // Cara frontal (roja)
-        -1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
-         1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
-        -1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
-         1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
-        -1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
-        
-        // Cara trasera (verde)
-        -1.0f, -1.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-         1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-         1.0f, -1.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-        -1.0f, -1.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-        -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-         1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-        
-        // Cara superior (azul)
-        -1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 1.0f,
-         1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 1.0f,
-         1.0f,  1.0f, -1.0f,  0.0f, 0.0f, 1.0f,
-        -1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 1.0f,
-         1.0f,  1.0f, -1.0f,  0.0f, 0.0f, 1.0f,
-        -1.0f,  1.0f, -1.0f,  0.0f, 0.0f, 1.0f,
-        
-        // Cara inferior (amarilla)
-        -1.0f, -1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
-         1.0f, -1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
-         1.0f, -1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
-        -1.0f, -1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
-        -1.0f, -1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
-         1.0f, -1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
-        
-        // Cara derecha (cian)
-         1.0f, -1.0f,  1.0f,  0.0f, 1.0f, 1.0f,
-         1.0f, -1.0f, -1.0f,  0.0f, 1.0f, 1.0f,
-         1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 1.0f,
-         1.0f, -1.0f,  1.0f,  0.0f, 1.0f, 1.0f,
-         1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 1.0f,
-         1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 1.0f,
-        
-        // Cara izquierda (magenta)
-        -1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 1.0f,
-        -1.0f,  1.0f, -1.0f,  1.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 1.0f,
-        -1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 1.0f,
-        -1.0f,  1.0f, -1.0f,  1.0f, 0.0f, 1.0f
-    };
-    
-    // Crear VAO
-    glGenVertexArrays(1, &gs->vao);
-    glBindVertexArray(gs->vao);
-    
-    // Crear VBO
-    glGenBuffers(1, &gs->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, gs->vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    
-    // Atributo 0: Posición (3 floats)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    
-    // Atributo 1: Color (3 floats)
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    
-    // Desvincular
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    
-    debug_log("Geometría creada: VAO=%u, VBO=%u, %d vértices", 
-              gs->vao, gs->vbo, sizeof(vertices) / (6 * sizeof(float)));
-    return true;
-}
-
-/**
  * Crea una matriz de rotación sobre el eje Y
  * Didáctico: Explica cómo se construye la matriz
  */
@@ -406,26 +334,6 @@ void setup_matrices(GraphicsState* gs, int width, int height, float rotation_ang
 }
 
 /**
- * Renderiza un frame
- */
-void render_frame(GraphicsState* gs, AppState* app) {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    if (app->wireframe) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    } else {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-    
-    glUseProgram(gs->program);
-    glBindVertexArray(gs->vao);
-    glDrawArrays(GL_TRIANGLES, 0, 36); // 36 vértices
-    
-    glBindVertexArray(0);
-    glUseProgram(0);
-}
-
-/**
  * Limpia recursos
  */
 void cleanup(SDL_Window* window, GraphicsState* gs) {
@@ -455,41 +363,226 @@ void cleanup(SDL_Window* window, GraphicsState* gs) {
     debug_log("SDL finalizado");
 }
 
+// Estructura de vértice "Interleaved" (todo junto para la GPU)
+typedef struct {
+    float x, y, z;    // Posición
+    float nx, ny, nz; // Normales (para luz)
+    float u, v;       // Texturas (UV)
+} Vertice;
+
+// Estructura para manejar el modelo en el motor
+typedef struct {
+    GLuint vao;
+    GLuint vbo;
+    int num_vertices;
+} Modelo;
+
+/**
+ * Renderiza un frame
+ */
+void render_frame(GraphicsState* gs, AppState* app, Modelo* modelo) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    if (app->wireframe) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+    
+    glUseProgram(gs->program);
+    glBindVertexArray(modelo->vao); // <--- Usamos el VAO del modelo cargado
+    glDrawArrays(GL_TRIANGLES, 0, modelo->num_vertices); // <--- Usamos su número de vértices
+    
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+/**
+ * Centra el modelo en el origen (0,0,0) y lo escala a un tamaño estándar.
+ */
+void centrar_modelo(Vertice* vertices, unsigned int num_vertices) {
+    if (num_vertices == 0) return;
+
+    // 1. Encontrar los límites (Bounding Box)
+    float min_x = 1e10, max_x = -1e10;
+    float min_y = 1e10, max_y = -1e10;
+    float min_z = 1e10, max_z = -1e10;
+
+    for (unsigned int i = 0; i < num_vertices; i++) {
+        if (vertices[i].x < min_x) min_x = vertices[i].x;
+        if (vertices[i].x > max_x) max_x = vertices[i].x;
+        if (vertices[i].y < min_y) min_y = vertices[i].y;
+        if (vertices[i].y > max_y) max_y = vertices[i].y;
+        if (vertices[i].z < min_z) min_z = vertices[i].z;
+        if (vertices[i].z > max_z) max_z = vertices[i].z;
+    }
+
+    // 2. Calcular el centro y la dimensión mayor
+    float centro_x = (min_x + max_x) / 2.0f;
+    float centro_y = (min_y + max_y) / 2.0f;
+    float centro_z = (min_z + max_z) / 2.0f;
+
+    float size_x = max_x - min_x;
+    float size_y = max_y - min_y;
+    float size_z = max_z - min_z;
+    
+    float max_dim = size_x;
+    if (size_y > max_dim) max_dim = size_y;
+    if (size_z > max_dim) max_dim = size_z;
+
+    // Queremos que el objeto encaje en un cubo de tamaño 2 (-1 a 1)
+    float factor_escala = (max_dim > 0) ? (2.0f / max_dim) : 1.0f;
+
+    // 3. Aplicar transformación a cada vértice
+    for (unsigned int i = 0; i < num_vertices; i++) {
+        vertices[i].x = (vertices[i].x - centro_x) * factor_escala;
+        vertices[i].y = (vertices[i].y - centro_y) * factor_escala;
+        vertices[i].z = (vertices[i].z - centro_z) * factor_escala;
+    }
+
+    debug_log("Modelo centrado. Centro original: (%.2f, %.2f, %.2f), Escala: %.2f", 
+              centro_x, centro_y, centro_z, factor_escala);
+}
+
+/**
+ * Cargar modelo desde un archivo OBJ
+ * Modificado para manejar correctamente normales, UVs y prevenir corrupción de memoria.
+ */
+bool cargar_modelo(Modelo* out_modelo, Arena* mi_arena, const char* ruta) {
+    debug_log("Cargando modelo con triangulacion activa: %s", ruta);
+    
+    fastObjMesh* mesh = fast_obj_read(ruta);
+    if (!mesh) {
+        debug_log("ERROR: No se pudo leer el archivo OBJ: %s", ruta);
+        return false;
+    }
+
+    // 1. Calcular cuántos vértices de triángulo reales necesitamos
+    // Un cuadrado (4 vertices) necesita 2 triángulos (6 vertices).
+    // La fórmula para cualquier polígono es: (n_vertices - 2) * 3
+    unsigned int total_render_vertices = 0;
+    for (unsigned int f = 0; f < mesh->face_count; f++) {
+        total_render_vertices += (mesh->face_vertices[f] - 2) * 3;
+    }
+
+    size_t bytes_necesarios = sizeof(Vertice) * total_render_vertices;
+    Vertice* datos_gpu = (Vertice*)arena_push(mi_arena, bytes_necesarios);
+    
+    if (!datos_gpu) {        
+        debug_log("Arena insuficiente");
+        fast_obj_destroy(mesh);
+        return false;
+    }
+
+    // 2. Bucle de triangulación manual
+    unsigned int curr_v = 0;      // Puntero al vértice que estamos escribiendo
+    unsigned int vert_offset = 0; // Puntero al índice del OBJ que estamos leyendo
+
+    for (unsigned int f = 0; f < mesh->face_count; f++) {
+        unsigned int vertices_en_esta_cara = mesh->face_vertices[f];
+
+        // Creamos un "Triangle Fan" para la cara
+        for (unsigned int v = 1; v < vertices_en_esta_cara - 1; v++) {
+            // Indices para formar el triángulo: 0, v, v+1
+            unsigned int face_indices[3] = {0, v, v + 1};
+
+            for (int i = 0; i < 3; i++) {
+                fastObjIndex idx = mesh->indices[vert_offset + face_indices[i]];
+
+                // Posiciones
+                datos_gpu[curr_v].x = mesh->positions[idx.p * 3 + 0];
+                datos_gpu[curr_v].y = mesh->positions[idx.p * 3 + 1];
+                datos_gpu[curr_v].z = mesh->positions[idx.p * 3 + 2];
+
+                // Normales
+                if (mesh->normal_count > 1) {
+                    datos_gpu[curr_v].nx = mesh->normals[idx.n * 3 + 0];
+                    datos_gpu[curr_v].ny = mesh->normals[idx.n * 3 + 1];
+                    datos_gpu[curr_v].nz = mesh->normals[idx.n * 3 + 2];
+                } else {
+                    datos_gpu[curr_v].nx = 0.0f; datos_gpu[curr_v].ny = 1.0f; datos_gpu[curr_v].nz = 0.0f;
+                }
+
+                // UVs
+                if (mesh->texcoord_count > 1) {
+                    datos_gpu[curr_v].u = mesh->texcoords[idx.t * 2 + 0];
+                    datos_gpu[curr_v].v = mesh->texcoords[idx.t * 2 + 1];
+                }
+
+                curr_v++;
+            }
+        }
+        vert_offset += vertices_en_esta_cara;
+    }
+
+    centrar_modelo(datos_gpu, total_render_vertices);
+
+    // 3. Subir a la GPU (Esto se mantiene igual)
+    glGenVertexArrays(1, &out_modelo->vao);
+    glGenBuffers(1, &out_modelo->vbo);
+    
+    glBindVertexArray(out_modelo->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, out_modelo->vbo);
+    glBufferData(GL_ARRAY_BUFFER, bytes_necesarios, datos_gpu, GL_STATIC_DRAW);
+
+    // Atributos
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    out_modelo->num_vertices = total_render_vertices;
+    
+    glBindVertexArray(0);
+    fast_obj_destroy(mesh); 
+    
+    arena_reporte(mi_arena, ruta);
+    return true;
+}
+
 // ============================================================================
 // FUNCIÓN PRINCIPAL
 // ============================================================================
 
 int main(int argc, char* argv[]) {
+    (void)argc; // Silenciar el warning
+    (void)argv; // Silenciar el warning
     printf("========================================\n");
     printf("MOTOR OPENGL 3.3 (Windows)\n");
     printf("========================================\n\n");
     
     AppState app = {
         .wireframe = false,
-        .show_debug = true,
         .running = true,
         .rotation_y = 0.0f
     };
     
     GraphicsState gs = {0};
     SDL_Window* window = NULL;
+
+    // GESTIÓN DE MEMORIA    
+    Arena arena_escena;
+    arena_inicializar(&arena_escena, ARENA_SIZE_MB * 1024 * 1024);
+    arena_reporte(&arena_escena, "INICIALIZACION");    
     
-    // 1. INICIALIZAR SDL
-    debug_log("Paso 1: Inicializando SDL3...");
+    // INICIALIZAR SDL
+    debug_log("Inicializando SDL3...");
     if (!init_sdl(&window)) {
         return 1;
     }
     
-    // 2. INICIALIZAR OPENGL
-    debug_log("Paso 2: Inicializando OpenGL...");
+    // INICIALIZAR OPENGL
+    debug_log("Inicializando OpenGL...");
     if (!init_opengl(window)) {
         SDL_DestroyWindow(window);
         SDL_Quit();
         return 1;
     }
     
-    // 3. CREAR SHADERS
-    debug_log("Paso 3: Creando shaders...");
+    // CREAR SHADERS
+    debug_log("Creando shaders...");
     gs.program = create_shader_program();
     if (gs.program == 0) {
         SDL_DestroyWindow(window);
@@ -504,17 +597,13 @@ int main(int argc, char* argv[]) {
     } else {
         debug_log("Uniform uMVP ubicado en: %d", gs.mvp_location);
     }
-    
-    // 4. CREAR GEOMETRÍA
-    debug_log("Paso 4: Creando geometría...");
-    if (!create_cube_geometry(&gs)) {
-        glDeleteProgram(gs.program);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
+
+    Modelo mi_cubo_obj;
+    if (cargar_modelo(&mi_cubo_obj, &arena_escena, "assets/models/Icecream.obj")) {
+        printf("¡Modelo cargado con éxito!\n");
     }
     
-    // 5. CONFIGURAR MATRICES
+    // CONFIGURAR MATRICES
     int width, height;
     SDL_GetWindowSizeInPixels(window, &width, &height);
     setup_matrices(&gs, width, height, app.rotation_y);
@@ -526,7 +615,7 @@ int main(int argc, char* argv[]) {
     debug_log("  F1  - Alternar wireframe");
     debug_log("========================================\n");
     
-    // 6. BUCLE PRINCIPAL
+    // BUCLE PRINCIPAL
     debug_log("Iniciando bucle de renderizado...");
     while (app.running) {
         SDL_Event event;
@@ -553,9 +642,7 @@ int main(int argc, char* argv[]) {
                 SDL_GetWindowSizeInPixels(window, &width, &height);
                 glViewport(0, 0, width, height);
                 setup_matrices(&gs, width, height, app.rotation_y);
-                if (app.show_debug) {
-                    debug_log("Ventana redimensionada: %dx%d", width, height);
-                }
+                debug_log("Ventana redimensionada: %dx%d", width, height);
             }
         }
         
@@ -566,15 +653,18 @@ int main(int argc, char* argv[]) {
         // Actualizar matrices cada frame
         setup_matrices(&gs, width, height, app.rotation_y);
         
-        render_frame(&gs, &app);
+        render_frame(&gs, &app, &mi_cubo_obj);
         SDL_GL_SwapWindow(window);
         SDL_Delay(16);
     }
     
-    // 7. LIMPIEZA
+    // LIMPIEZA
     debug_log("\nFinalizando...");
     cleanup(window, &gs);
     
+    free(arena_escena.base);
+    debug_log("Arena liberada!");
+
     printf("\nAplicación terminada correctamente.\n");
     return 0;
 }
