@@ -8,11 +8,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#include "gl_headers.h"
+
 #include "gestion_memoria.h"
 
 #define FAST_OBJ_IMPLEMENTATION 
 #include "fast_obj.h"
+
+#define GL_IMPLEMENTATION
+#include "gl_headers.h"
 
 // ============================================================================
 // CONSTANTES CONFIGURABLES
