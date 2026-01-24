@@ -27,12 +27,12 @@
 #define CAMERA_FAR      100.0f
 #define CAMERA_DISTANCE 4.0f
 
-#define CLEAR_COLOR_R   1.0f
-#define CLEAR_COLOR_G   1.0f
-#define CLEAR_COLOR_B   1.0f
+#define CLEAR_COLOR_R   (0.0f   / 255.0f)
+#define CLEAR_COLOR_G   (51.0f  / 255.0f)
+#define CLEAR_COLOR_B   (204.0f / 255.0f)
 #define CLEAR_COLOR_A   1.0f
 
-#define ROTATION_SPEED_Y 1.0f
+#define ROTATION_SPEED_Y 0.25f
 
 #define ARENA_SIZE_MB 10
 
@@ -57,27 +57,40 @@ typedef struct {
 // SHADERS EMBEBIDOS
 // ============================================================================
 
-static const char* VERTEX_SHADER_SOURCE = 
+static const char* VERTEX_SHADER_SOURCE =
     "#version 330 core\n"
     "layout(location = 0) in vec3 aPos;\n"
     "layout(location = 1) in vec3 aNormal;\n"
+    "layout(location = 3) in vec3 aColor;\n"
     "uniform mat4 uMVP;\n"
     "out vec3 vNormal;\n"
+    "out vec3 vColor;\n"
     "void main() {\n"
     "    gl_Position = uMVP * vec4(aPos, 1.0);\n"
     "    vNormal = aNormal;\n"
+    "    vColor = aColor;\n"
     "}\n";
 
 static const char* FRAGMENT_SHADER_SOURCE = 
     "#version 330 core\n"
     "in vec3 vNormal;\n"
+    "in vec3 vColor;\n"
     "out vec4 outColor;\n"
     "void main() {\n"
-    "    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));\n"
     "    vec3 n = normalize(vNormal);\n"
-    "    float diff = max(dot(n, lightDir), 0.2);\n"
-    "    vec3 objectColor = vec3(0.6, 0.7, 0.9);\n"
-    "    outColor = vec4(objectColor * diff, 1.0);\n"
+    "    // Luz desde la esquina (estilo Blender por defecto)\n"
+    "    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.7));\n"
+    "\n"
+    "    // Difuso con un toque de 'envuelto' para que no haya zonas negras puras por sombra\n"
+    "    float diff = max(dot(n, lightDir), 0.0);\n"
+    "    float lighting = diff * 0.7 + 0.3;\n" 
+    "\n"
+    "    vec3 result = vColor * lighting;\n"
+    "\n"
+    "    // Corrección Gamma para que los medios tonos sean iguales a Blender\n"
+    "    vec3 finalColor = pow(result, vec3(1.0/2.2));\n"
+    "\n"
+    "    outColor = vec4(finalColor, 1.0);\n"
     "}\n";
 
 // ============================================================================
@@ -366,8 +379,11 @@ void cleanup(SDL_Window* window, GraphicsState* gs) {
 // Estructura de vértice "Interleaved" (todo junto para la GPU)
 typedef struct {
     float x, y, z;    // Posición
-    float nx, ny, nz; // Normales (para luz)
-    float u, v;       // Texturas (UV)
+    float nx, ny, nz; // Normales
+    float u, v;       // UVs
+    float r, g, b;    // Color Difuso (Kd)
+    float ksr, ksg, ksb; // Color Especular (Ks)
+    float ns;         // Exponente de brillo (Ns)
 } Vertice;
 
 // Estructura para manejar el modelo en el motor
@@ -449,17 +465,11 @@ void centrar_modelo(Vertice* vertices, unsigned int num_vertices) {
  * Modificado para manejar correctamente normales, UVs y prevenir corrupción de memoria.
  */
 bool cargar_modelo(Modelo* out_modelo, Arena* mi_arena, const char* ruta) {
-    debug_log("Cargando modelo con triangulacion activa: %s", ruta);
+    debug_log("Cargando modelo con Materiales Completos: %s", ruta);
     
     fastObjMesh* mesh = fast_obj_read(ruta);
-    if (!mesh) {
-        debug_log("ERROR: No se pudo leer el archivo OBJ: %s", ruta);
-        return false;
-    }
+    if (!mesh) return false;
 
-    // 1. Calcular cuántos vértices de triángulo reales necesitamos
-    // Un cuadrado (4 vertices) necesita 2 triángulos (6 vertices).
-    // La fórmula para cualquier polígono es: (n_vertices - 2) * 3
     unsigned int total_render_vertices = 0;
     for (unsigned int f = 0; f < mesh->face_count; f++) {
         total_render_vertices += (mesh->face_vertices[f] - 2) * 3;
@@ -467,47 +477,47 @@ bool cargar_modelo(Modelo* out_modelo, Arena* mi_arena, const char* ruta) {
 
     size_t bytes_necesarios = sizeof(Vertice) * total_render_vertices;
     Vertice* datos_gpu = (Vertice*)arena_push(mi_arena, bytes_necesarios);
-    
-    if (!datos_gpu) {        
-        debug_log("Arena insuficiente");
-        fast_obj_destroy(mesh);
-        return false;
-    }
+    if (!datos_gpu) { fast_obj_destroy(mesh); return false; }
 
-    // 2. Bucle de triangulación manual
-    unsigned int curr_v = 0;      // Puntero al vértice que estamos escribiendo
-    unsigned int vert_offset = 0; // Puntero al índice del OBJ que estamos leyendo
+    unsigned int curr_v = 0;
+    unsigned int vert_offset = 0;
 
     for (unsigned int f = 0; f < mesh->face_count; f++) {
         unsigned int vertices_en_esta_cara = mesh->face_vertices[f];
+        
+        // --- EXTRAER TODO DEL MTL ---
+        fastObjMaterial mat = mesh->materials[mesh->face_materials[f]];
+        
+        // Color Difuso (Kd) - QUITA EL IF DE LOS CEROS
+        float dr = mat.Kd[0]; 
+        float dg = mat.Kd[1]; 
+        float db = mat.Kd[2];
 
-        // Creamos un "Triangle Fan" para la cara
+        // Color Especular (Ks) y Brillo (Ns)
+        float sr = mat.Ks[0]; 
+        float sg = mat.Ks[1]; 
+        float sb = mat.Ks[2];
+        float shininess = mat.Ns;
+
         for (unsigned int v = 1; v < vertices_en_esta_cara - 1; v++) {
-            // Indices para formar el triángulo: 0, v, v+1
             unsigned int face_indices[3] = {0, v, v + 1};
-
             for (int i = 0; i < 3; i++) {
                 fastObjIndex idx = mesh->indices[vert_offset + face_indices[i]];
 
-                // Posiciones
                 datos_gpu[curr_v].x = mesh->positions[idx.p * 3 + 0];
                 datos_gpu[curr_v].y = mesh->positions[idx.p * 3 + 1];
                 datos_gpu[curr_v].z = mesh->positions[idx.p * 3 + 2];
-
-                // Normales
+                
                 if (mesh->normal_count > 1) {
                     datos_gpu[curr_v].nx = mesh->normals[idx.n * 3 + 0];
                     datos_gpu[curr_v].ny = mesh->normals[idx.n * 3 + 1];
                     datos_gpu[curr_v].nz = mesh->normals[idx.n * 3 + 2];
-                } else {
-                    datos_gpu[curr_v].nx = 0.0f; datos_gpu[curr_v].ny = 1.0f; datos_gpu[curr_v].nz = 0.0f;
                 }
 
-                // UVs
-                if (mesh->texcoord_count > 1) {
-                    datos_gpu[curr_v].u = mesh->texcoords[idx.t * 2 + 0];
-                    datos_gpu[curr_v].v = mesh->texcoords[idx.t * 2 + 1];
-                }
+                // Asignar datos de material al vértice
+                datos_gpu[curr_v].r = dr; datos_gpu[curr_v].g = dg; datos_gpu[curr_v].b = db;
+                datos_gpu[curr_v].ksr = sr; datos_gpu[curr_v].ksg = sg; datos_gpu[curr_v].ksb = sb;
+                datos_gpu[curr_v].ns = shininess;
 
                 curr_v++;
             }
@@ -517,28 +527,37 @@ bool cargar_modelo(Modelo* out_modelo, Arena* mi_arena, const char* ruta) {
 
     centrar_modelo(datos_gpu, total_render_vertices);
 
-    // 3. Subir a la GPU (Esto se mantiene igual)
+    // 3. Configuración de la GPU
     glGenVertexArrays(1, &out_modelo->vao);
     glGenBuffers(1, &out_modelo->vbo);
-    
     glBindVertexArray(out_modelo->vao);
     glBindBuffer(GL_ARRAY_BUFFER, out_modelo->vbo);
     glBufferData(GL_ARRAY_BUFFER, bytes_necesarios, datos_gpu, GL_STATIC_DRAW);
 
-    // Atributos
+    // Layout de Atributos:
+    // Pos(3), Norm(3), UV(2), Color(3), Spec(3), Shininess(1)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+    
+    // Location 3: Color Difuso (Kd)
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    
+    // Location 4: Color Especular (Ks)
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+    
+    // Location 5: Shininess (Ns)
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)(14 * sizeof(float)));
+    glEnableVertexAttribArray(5);
 
     out_modelo->num_vertices = total_render_vertices;
-    
     glBindVertexArray(0);
     fast_obj_destroy(mesh); 
-    
-    arena_reporte(mi_arena, ruta);
     return true;
 }
 
@@ -599,7 +618,7 @@ int main(int argc, char* argv[]) {
     }
 
     Modelo mi_cubo_obj;
-    if (cargar_modelo(&mi_cubo_obj, &arena_escena, "assets/models/Icecream.obj")) {
+    if (cargar_modelo(&mi_cubo_obj, &arena_escena, "assets/models/GatoLowPoly.obj")) {
         printf("¡Modelo cargado con éxito!\n");
     }
     
