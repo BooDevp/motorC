@@ -54,48 +54,24 @@ typedef struct {
 } AppState;
 
 // ============================================================================
-// SHADERS EMBEBIDOS
-// ============================================================================
-
-static const char* VERTEX_SHADER_SOURCE =
-    "#version 330 core\n"
-    "layout(location = 0) in vec3 aPos;\n"
-    "layout(location = 1) in vec3 aNormal;\n"
-    "layout(location = 3) in vec3 aColor;\n"
-    "uniform mat4 uMVP;\n"
-    "out vec3 vNormal;\n"
-    "out vec3 vColor;\n"
-    "void main() {\n"
-    "    gl_Position = uMVP * vec4(aPos, 1.0);\n"
-    "    vNormal = aNormal;\n"
-    "    vColor = aColor;\n"
-    "}\n";
-
-static const char* FRAGMENT_SHADER_SOURCE = 
-    "#version 330 core\n"
-    "in vec3 vNormal;\n"
-    "in vec3 vColor;\n"
-    "out vec4 outColor;\n"
-    "void main() {\n"
-    "    vec3 n = normalize(vNormal);\n"
-    "    // Luz desde la esquina (estilo Blender por defecto)\n"
-    "    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.7));\n"
-    "\n"
-    "    // Difuso con un toque de 'envuelto' para que no haya zonas negras puras por sombra\n"
-    "    float diff = max(dot(n, lightDir), 0.0);\n"
-    "    float lighting = diff * 0.7 + 0.3;\n" 
-    "\n"
-    "    vec3 result = vColor * lighting;\n"
-    "\n"
-    "    // Corrección Gamma para que los medios tonos sean iguales a Blender\n"
-    "    vec3 finalColor = pow(result, vec3(1.0/2.2));\n"
-    "\n"
-    "    outColor = vec4(finalColor, 1.0);\n"
-    "}\n";
-
-// ============================================================================
 // FUNCIONES DEL MOTOR
 // ============================================================================
+
+/**
+ * Carga el código fuente de un shader desde un archivo
+ */
+char* load_shader_source(const char* filename) {
+    size_t dataSize = 0;
+    void* data = SDL_LoadFile(filename, &dataSize);
+    
+    if (data == NULL) {
+        debug_log("ERROR cargando archivo shader %s: %s", filename, SDL_GetError());
+        return NULL;
+    }
+    
+    // SDL_LoadFile data is guaranteed to be null-terminated in SDL3
+    return (char*)data;
+}
 
 /**
  * Inicializa SDL y crea una ventana con contexto OpenGL
@@ -195,9 +171,21 @@ GLuint compile_shader(GLenum type, const char* source) {
  * Crea un programa de shaders
  */
 GLuint create_shader_program(void) {
-    GLuint vertex_shader = compile_shader(GL_VERTEX_SHADER, VERTEX_SHADER_SOURCE);
-    GLuint fragment_shader = compile_shader(GL_FRAGMENT_SHADER, FRAGMENT_SHADER_SOURCE);
+    char* vertex_source = load_shader_source("src/shaders/simple.vert");
+    char* fragment_source = load_shader_source("src/shaders/simple.frag");
     
+    if (!vertex_source || !fragment_source) {
+        if (vertex_source) SDL_free(vertex_source);
+        if (fragment_source) SDL_free(fragment_source);
+        return 0;
+    }
+
+    GLuint vertex_shader = compile_shader(GL_VERTEX_SHADER, vertex_source);
+    GLuint fragment_shader = compile_shader(GL_FRAGMENT_SHADER, fragment_source);
+    
+    SDL_free(vertex_source);
+    SDL_free(fragment_source);
+
     if (vertex_shader == 0 || fragment_shader == 0) {
         return 0;
     }
