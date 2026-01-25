@@ -25,10 +25,6 @@
 #ifndef GESTION_MEMORIA_H
 #define GESTION_MEMORIA_H
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 typedef struct
 {
     size_t capacidad;
@@ -36,7 +32,7 @@ typedef struct
     uint8_t *base;
 } Arena;
 
-static void arena_reporte(Arena *a, const char *etiqueta)
+static inline void arena_reporte(Arena *a, const char *etiqueta)
 {
     float porcentaje = (a->usado * 100.0f) / a->capacidad;
 
@@ -50,7 +46,7 @@ static void arena_reporte(Arena *a, const char *etiqueta)
     printf("---------------------------\n\n");
 }
 
-static void arena_inicializar(Arena *a, size_t size_arena)
+static inline void arena_inicializar(Arena *a, size_t size_arena)
 {
     a->capacidad = size_arena;
     a->usado = 0;
@@ -65,7 +61,7 @@ static void arena_inicializar(Arena *a, size_t size_arena)
     }
 }
 
-static void *arena_push(Arena *a, size_t size_perdido)
+static inline void *arena_push(Arena *a, size_t size_perdido)
 {
     // Alinear a 8 bytes para que la CPU lea más rápido
     size_t alineado = (size_perdido + 7) & ~7;
@@ -82,10 +78,10 @@ static void *arena_push(Arena *a, size_t size_perdido)
     return NULL;
 }
 
-static void arena_reset(Arena *a)
-{
-    a->usado = 0;
-    printf("Arena reseteada (Puntero devuelto a 0).\n");
-}
+// static inline void arena_reset(Arena *a)
+// {
+//     a->usado = 0;
+//     printf("Arena reseteada (Puntero devuelto a 0).\n");
+// }
 
 #endif
