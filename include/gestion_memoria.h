@@ -70,7 +70,7 @@ static inline void *arena_push(Arena *a, size_t size_perdido)
     {
         void *puntero = a->base + a->usado;
         a->usado += alineado;
-        printf("Pedido: %zu bytes | Disponible: %zu bytes\n", alineado, a->capacidad - a->usado);
+        arena_reporte(a, "ARENA PUSH");
         return puntero;
     }
 
