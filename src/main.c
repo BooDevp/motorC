@@ -53,6 +53,7 @@ typedef struct
 
 #include "camara.h"
 #include "model.h"
+#include "render.h"
 
 // ============================================================================
 // FUNCIONES DEL MOTOR
@@ -171,29 +172,6 @@ void cleanup(SDL_Window *window, GraphicsState *gs)
     debug_log("SDL finalizado");
 }
 
-/**
- * Renderiza un frame
- */
-void render_frame(GraphicsState *gs, AppState *app, Modelo *modelo)
-{
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    if (app->wireframe)
-    {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-    else
-    {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-
-    glUseProgram(gs->program);
-    glBindVertexArray(modelo->vao);                      // <--- Usamos el VAO del modelo cargado
-    glDrawArrays(GL_TRIANGLES, 0, modelo->num_vertices); // <--- Usamos su número de vértices
-
-    glBindVertexArray(0);
-    glUseProgram(0);
-}
 
 // ============================================================================
 // FUNCIÓN PRINCIPAL
@@ -267,8 +245,7 @@ int main(int argc, char *argv[])
 
     // CONFIGURAR MATRICES
     int width, height;
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-    setup_matrices(&gs, width, height, &modelo_obj, &mi_camara);
+    SDL_GetWindowSizeInPixels(window, &width, &height);    
 
     debug_log("\n========================================");
     debug_log("MOTOR LISTO");
@@ -309,16 +286,17 @@ int main(int argc, char *argv[])
             if (event.type == SDL_EVENT_WINDOW_RESIZED)
             {
                 SDL_GetWindowSizeInPixels(window, &width, &height);
-                glViewport(0, 0, width, height);
-                setup_matrices(&gs, width, height, &modelo_obj, &mi_camara);
+                glViewport(0, 0, width, height);                
                 debug_log("Ventana redimensionada: %dx%d", width, height);
             }
-        }
+        }        
 
-        // Actualizar matrices cada frame
-        setup_matrices(&gs, width, height, &modelo_obj, &mi_camara);
+        // 1. Limpiar la pantalla y el buffer de profundidad
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        render_frame(&gs, &app, &modelo_obj);
+        // El renderizador se encarga de todo lo visual
+        render_frame(&gs, &mi_camara, &modelo_obj, &app, width, height);
+
         SDL_GL_SwapWindow(window);
         SDL_Delay(16);
     }
