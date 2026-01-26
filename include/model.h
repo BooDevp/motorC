@@ -195,15 +195,15 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, Mode
 {
     glUseProgram(gs->program);
 
-    // 1. Obtener Proyección desde la Cámara
+    // Obtener Proyección desde la Cámara
     float proj[16];
     calcular_matriz_proyeccion(cam, width, height, proj);
 
-    // 2. Obtener Vista desde la Cámara
+    // Obtener Vista desde la Cámara
     float view[16];
     calcular_matriz_vista(cam, view);
 
-    // 3. Matriz de Modelo (se mantiene igual, depende del objeto)
+    // Matriz de Modelo (se mantiene igual, depende del objeto)
     float radX = m->rotacion[0] * TO_RAD;
     float radY = m->rotacion[1] * TO_RAD;
     float radZ = m->rotacion[2] * TO_RAD;
@@ -217,7 +217,7 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, Mode
         m->escala[0] * (msy * mcx), m->escala[1] * (-msx), m->escala[2] * (mcy * mcx), 0,
         m->posicion[0], m->posicion[1], m->posicion[2], 1};
 
-    // 4. Multiplicación MVP (Proceso estándar)
+    // Multiplicación MVP (Proceso estándar)
     float pv[16];
     for (int i = 0; i < 4; i++)
     {
