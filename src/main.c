@@ -26,9 +26,9 @@
 #define WINDOW_HEIGHT 600
 #define WINDOW_TITLE "Motor OpenGL 3.3"
 
-#define CLEAR_COLOR_R (0.0f / 255.0f)
-#define CLEAR_COLOR_G (51.0f / 255.0f)
-#define CLEAR_COLOR_B (204.0f / 255.0f)
+#define CLEAR_COLOR_R (18.0f / 255.0f)
+#define CLEAR_COLOR_G (18.0f / 255.0f)
+#define CLEAR_COLOR_B (20.0f / 255.0f)
 #define CLEAR_COLOR_A 1.0f
 
 #define ARENA_SIZE_MB 10
@@ -309,6 +309,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < nivel.cantidad; i++)
         {
             render_frame(&gs, &mi_camara, &nivel.modelos[i], &app, width, height);
+            nivel.modelos[i].rotacion[1] += 20.0f * delta_time;
         }
 
         SDL_GL_SwapWindow(window);        
