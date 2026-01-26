@@ -237,8 +237,7 @@ int main(int argc, char *argv[])
     }
 
     // CARGAR NIVEL 1
-    Escena nivel = crear_escena(&arena_escena, 20);
-    cargar_escena_nivel_1(&nivel, &arena_escena);
+    Escena nivel = cargar_escena_nivel_1(&arena_escena);
 
     // CONFIGURACIÓN CÁMARA
     Camara mi_camara = crear_camara_defecto();
