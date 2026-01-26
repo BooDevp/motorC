@@ -36,8 +36,6 @@
 #define CLEAR_COLOR_B (204.0f / 255.0f)
 #define CLEAR_COLOR_A 1.0f
 
-#define ROTATION_SPEED_Y 0.25f
-
 #define ARENA_SIZE_MB 10
 
 // ============================================================================
@@ -55,8 +53,7 @@ typedef struct
 typedef struct
 {
     bool wireframe;
-    bool running;
-    float rotation_y;
+    bool running;    
     float camera_fov;
     float camera_near;
     float camera_far;
@@ -220,8 +217,7 @@ int main(int argc, char *argv[])
 
     AppState app = {
         .wireframe = false,
-        .running = true,
-        .rotation_y = 0.0f,
+        .running = true,        
         .camera_fov = CAMERA_FOV,
         .camera_near = CAMERA_NEAR,
         .camera_far = CAMERA_FAR,
@@ -281,7 +277,7 @@ int main(int argc, char *argv[])
     // CONFIGURAR MATRICES
     int width, height;
     SDL_GetWindowSizeInPixels(window, &width, &height);
-    setup_matrices(&gs, width, height, app.rotation_y, app);
+    setup_matrices(&gs, width, height, app);
 
     debug_log("\n========================================");
     debug_log("MOTOR LISTO");
@@ -323,18 +319,13 @@ int main(int argc, char *argv[])
             {
                 SDL_GetWindowSizeInPixels(window, &width, &height);
                 glViewport(0, 0, width, height);
-                setup_matrices(&gs, width, height, app.rotation_y, app);
+                setup_matrices(&gs, width, height, app);
                 debug_log("Ventana redimensionada: %dx%d", width, height);
             }
-        }
-
-        // Actualizar rotación
-        app.rotation_y += ROTATION_SPEED_Y;
-        if (app.rotation_y >= 360.0f)
-            app.rotation_y -= 360.0f;
+        }        
 
         // Actualizar matrices cada frame
-        setup_matrices(&gs, width, height, app.rotation_y, app);
+        setup_matrices(&gs, width, height, app);
 
         render_frame(&gs, &app, &mi_cubo_obj);
         SDL_GL_SwapWindow(window);
