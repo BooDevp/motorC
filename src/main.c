@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
     }
 
     Modelo mi_cubo_obj;
-    if (cargar_modelo(&mi_cubo_obj, &arena_escena, "assets/models/GatoLowPoly.obj"))
+    if (cargar_modelo(&mi_cubo_obj, &arena_escena, "assets/models/Icecream.obj"))
     {
         printf("¡Modelo cargado con éxito!\n");
     }
