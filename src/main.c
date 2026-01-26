@@ -26,11 +26,6 @@
 #define WINDOW_HEIGHT 600
 #define WINDOW_TITLE "Motor OpenGL 3.3"
 
-#define CAMERA_FOV 45.0f
-#define CAMERA_NEAR 0.1f
-#define CAMERA_FAR 100.0f
-#define CAMERA_DISTANCE 4.0f
-
 #define CLEAR_COLOR_R (0.0f / 255.0f)
 #define CLEAR_COLOR_G (51.0f / 255.0f)
 #define CLEAR_COLOR_B (204.0f / 255.0f)
@@ -53,13 +48,10 @@ typedef struct
 typedef struct
 {
     bool wireframe;
-    bool running;
-    float camera_fov;
-    float camera_near;
-    float camera_far;
-    float camera_distance;
+    bool running;    
 } AppState;
 
+#include "camara.h"
 #include "model.h"
 
 // ============================================================================
@@ -217,11 +209,7 @@ int main(int argc, char *argv[])
 
     AppState app = {
         .wireframe = false,
-        .running = true,
-        .camera_fov = CAMERA_FOV,
-        .camera_near = CAMERA_NEAR,
-        .camera_far = CAMERA_FAR,
-        .camera_distance = CAMERA_DISTANCE,
+        .running = true,        
     };
 
     GraphicsState gs = {0};
@@ -274,10 +262,13 @@ int main(int argc, char *argv[])
         printf("¡Modelo cargado con éxito!\n");
     }
 
+    // CONFIGURACIÓN CÁMARA
+    Camara mi_camara = crear_camara_defecto();    
+
     // CONFIGURAR MATRICES
     int width, height;
     SDL_GetWindowSizeInPixels(window, &width, &height);
-    setup_matrices(&gs, width, height, &modelo_obj, app);
+    setup_matrices(&gs, width, height, &modelo_obj, &mi_camara);
 
     debug_log("\n========================================");
     debug_log("MOTOR LISTO");
@@ -319,13 +310,13 @@ int main(int argc, char *argv[])
             {
                 SDL_GetWindowSizeInPixels(window, &width, &height);
                 glViewport(0, 0, width, height);
-                setup_matrices(&gs, width, height, &modelo_obj, app);
+                setup_matrices(&gs, width, height, &modelo_obj, &mi_camara);
                 debug_log("Ventana redimensionada: %dx%d", width, height);
             }
         }
 
         // Actualizar matrices cada frame
-        setup_matrices(&gs, width, height, &modelo_obj, app);
+        setup_matrices(&gs, width, height, &modelo_obj, &mi_camara);
 
         render_frame(&gs, &app, &modelo_obj);
         SDL_GL_SwapWindow(window);
