@@ -255,9 +255,21 @@ int main(int argc, char *argv[])
 
     // BUCLE PRINCIPAL
     debug_log("Iniciando bucle de renderizado...");
+
+    uint64_t last_time = SDL_GetTicks(); // Tiempo en milisegundos
+    float delta_time = 0.0f;
+
     while (app.running)
     {
         SDL_Event event;
+        uint64_t current_time = SDL_GetTicks();
+        // Convertimos la diferencia de ms a segundos (float)
+        delta_time = (current_time - last_time) / 1000.0f;
+        last_time = current_time;
+
+        // Evitar picos si la ventana se congela o se arrastra
+        if (delta_time > 0.1f)
+            delta_time = 0.1f;
 
         while (SDL_PollEvent(&event))
         {
@@ -299,8 +311,7 @@ int main(int argc, char *argv[])
             render_frame(&gs, &mi_camara, &nivel.modelos[i], &app, width, height);
         }
 
-        SDL_GL_SwapWindow(window);
-        SDL_Delay(16);
+        SDL_GL_SwapWindow(window);        
     }
 
     // LIMPIEZA
