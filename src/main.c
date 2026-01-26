@@ -236,8 +236,9 @@ int main(int argc, char *argv[])
         debug_log("Uniform uMVP ubicado en: %d", gs.mvp_location);
     }
 
-    Escena nivel1 = crear_escena(&arena_escena, 20);
-    cargar_escena_nivel_1(&nivel1, &arena_escena);
+    // CARGAR NIVEL 1
+    Escena nivel = crear_escena(&arena_escena, 20);
+    cargar_escena_nivel_1(&nivel, &arena_escena);
 
     // CONFIGURACIÓN CÁMARA
     Camara mi_camara = crear_camara_defecto();
@@ -294,9 +295,9 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // El renderizador se encarga de todo lo visual
-        for (int i = 0; i < nivel1.cantidad; i++)
+        for (int i = 0; i < nivel.cantidad; i++)
         {
-            render_frame(&gs, &mi_camara, &nivel1.modelos[i], &app, width, height);
+            render_frame(&gs, &mi_camara, &nivel.modelos[i], &app, width, height);
         }
 
         SDL_GL_SwapWindow(window);
