@@ -9,6 +9,8 @@
 #include <stddef.h> // Necesario para offsetof
 #include <math.h>
 
+#define TO_RAD (SDL_PI_F / 180.0f)
+
 // Estructura de vértice "Interleaved" (todo junto para la GPU)
 typedef struct
 {
@@ -202,9 +204,9 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, Mode
     calcular_matriz_vista(cam, view);
 
     // 3. Matriz de Modelo (se mantiene igual, depende del objeto)
-    float radX = m->rotacion[0] * (3.14159265f / 180.0f);
-    float radY = m->rotacion[1] * (3.14159265f / 180.0f);
-    float radZ = m->rotacion[2] * (3.14159265f / 180.0f);
+    float radX = m->rotacion[0] * TO_RAD;
+    float radY = m->rotacion[1] * TO_RAD;
+    float radZ = m->rotacion[2] * TO_RAD;
     float mcx = cosf(radX), msx = sinf(radX);
     float mcy = cosf(radY), msy = sinf(radY);
     float mcz = cosf(radZ), msz = sinf(radZ);

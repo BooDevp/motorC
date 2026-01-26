@@ -3,6 +3,8 @@
 
 #include <math.h>
 
+#define TO_RAD (SDL_PI_F / 180.0f)
+
 typedef enum
 {
     CAMARA_LIBRE,
@@ -40,8 +42,8 @@ static inline void calcular_matriz_vista(Camara *cam, float *view_matrix)
     float rx = (cam->tipo == CAMARA_ISOMETRICA) ? 35.264f : cam->rotacion[0];
     float ry = (cam->tipo == CAMARA_ISOMETRICA) ? 45.0f : cam->rotacion[1];
 
-    float radX = rx * (3.14159265f / 180.0f);
-    float radY = ry * (3.14159265f / 180.0f);
+    float radX = rx * TO_RAD;
+    float radY = ry * TO_RAD;
     float cx = cosf(radX), sx = sinf(radX);
     float cy = cosf(radY), sy = sinf(radY);
 
@@ -66,7 +68,7 @@ static inline void calcular_matriz_vista(Camara *cam, float *view_matrix)
 static inline void calcular_matriz_proyeccion(Camara *cam, int width, int height, float *proj_matrix)
 {
     float aspect = (float)width / (float)height;
-    float fov_rad = cam->fov * (3.14159265f / 180.0f);
+    float fov_rad = cam->fov * TO_RAD;
     float f = 1.0f / tanf(fov_rad / 2.0f);
 
     // Limpiar matriz
