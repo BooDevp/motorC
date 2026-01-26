@@ -27,7 +27,6 @@ typedef struct
     GLuint vbo;
     int num_vertices;
 
-    // --- NUEVO: Estado de transformación del modelo ---
     float posicion[3];
     float escala[3];
     float rotacion[3];
@@ -172,11 +171,11 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     out_modelo->posicion[0] = 0.0f;
     out_modelo->posicion[1] = 0.0f;
     out_modelo->posicion[2] = 0.0f;
-    
+
     out_modelo->escala[0] = 1.0f;
     out_modelo->escala[1] = 1.0f;
     out_modelo->escala[2] = 1.0f;
-    
+
     out_modelo->rotacion[0] = 0.0f;
     out_modelo->rotacion[1] = 0.0f;
     out_modelo->rotacion[2] = 0.0f;
