@@ -1,30 +1,21 @@
-# ============================================================================
-# MOTOR GRÁFICO CON SDL3 - SIEMPRE RECOMPILAR
-# ============================================================================
-
 CC = gcc
-CFLAGS = -I./include -Wall -Wextra -std=c11 -g
+# -I./include para el motor y SDL3
+# -I./src para las escenas
+CFLAGS = -I./include -I./src -Wall -Wextra -std=c11 -g
 LDFLAGS = -L./lib -lSDL3 -lopengl32 -lm
 
-# Buscamos todos los archivos .c
-SRC = $(wildcard src/*.c)
+SRC = src/main.c
 TARGET = motor.exe
 
-# Marcamos 'all' como PHONY para que ignore si los archivos son viejos o nuevos
-# y siempre ejecute la receta.
 .PHONY: all clean run
 
 all:
-	@echo ========================================
-	@echo COMPILANDO TODO EL PROYECTO...
-	@echo ========================================
+	@echo Compilando: $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
-	@echo Compilacion completada con exito.
+	@echo ¡Motor listo!
 
 clean:
-	@echo Limpiando proyecto...
 	del /q $(TARGET) 2>nul || true
 
 run: all
-	@echo Ejecutando...
 	.\$(TARGET)

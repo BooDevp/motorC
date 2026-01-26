@@ -22,8 +22,8 @@
  * arena_reset(&arena);
  */
 
-#ifndef GESTION_MEMORIA_H
-#define GESTION_MEMORIA_H
+#ifndef ARENA_H
+#define ARENA_H
 
 typedef struct
 {

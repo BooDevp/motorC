@@ -10,13 +10,13 @@
 #include <math.h>
 
 #define FAST_OBJ_IMPLEMENTATION
-#include "fast_obj.h"
+#include "external/fast_obj.h"
 
 #define GL_IMPLEMENTATION
-#include "gl_headers.h"
+#include "external/gl_headers.h"
 
-#include "gestion_memoria.h"
-#include "shader.h"
+#include "engine/arena.h"
+#include "engine/shader.h"
 
 // ============================================================================
 // CONSTANTES CONFIGURABLES
@@ -48,12 +48,15 @@ typedef struct
 typedef struct
 {
     bool wireframe;
-    bool running;    
+    bool running;
 } AppState;
 
-#include "camara.h"
-#include "model.h"
-#include "render.h"
+#include "engine/camara.h"
+#include "engine/model.h"
+#include "engine/render.h"
+#include "engine/escena.h"
+
+#include "scenes/nivel1.h"
 
 // ============================================================================
 // FUNCIONES DEL MOTOR
@@ -172,7 +175,6 @@ void cleanup(SDL_Window *window, GraphicsState *gs)
     debug_log("SDL finalizado");
 }
 
-
 // ============================================================================
 // FUNCIÓN PRINCIPAL
 // ============================================================================
@@ -187,7 +189,7 @@ int main(int argc, char *argv[])
 
     AppState app = {
         .wireframe = false,
-        .running = true,        
+        .running = true,
     };
 
     GraphicsState gs = {0};
@@ -234,18 +236,15 @@ int main(int argc, char *argv[])
         debug_log("Uniform uMVP ubicado en: %d", gs.mvp_location);
     }
 
-    Modelo modelo_obj;
-    if (cargar_modelo(&modelo_obj, &arena_escena, "assets/models/Icecream.obj"))
-    {
-        printf("¡Modelo cargado con éxito!\n");        
-    }
+    Escena nivel1 = crear_escena(&arena_escena, 20);
+    cargar_escena_nivel_1(&nivel1, &arena_escena);
 
     // CONFIGURACIÓN CÁMARA
-    Camara mi_camara = crear_camara_defecto();    
+    Camara mi_camara = crear_camara_defecto();
 
     // CONFIGURAR MATRICES
     int width, height;
-    SDL_GetWindowSizeInPixels(window, &width, &height);    
+    SDL_GetWindowSizeInPixels(window, &width, &height);
 
     debug_log("\n========================================");
     debug_log("MOTOR LISTO");
@@ -286,16 +285,19 @@ int main(int argc, char *argv[])
             if (event.type == SDL_EVENT_WINDOW_RESIZED)
             {
                 SDL_GetWindowSizeInPixels(window, &width, &height);
-                glViewport(0, 0, width, height);                
+                glViewport(0, 0, width, height);
                 debug_log("Ventana redimensionada: %dx%d", width, height);
             }
-        }        
+        }
 
         // 1. Limpiar la pantalla y el buffer de profundidad
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // El renderizador se encarga de todo lo visual
-        render_frame(&gs, &mi_camara, &modelo_obj, &app, width, height);
+        for (int i = 0; i < nivel1.cantidad; i++)
+        {
+            render_frame(&gs, &mi_camara, &nivel1.modelos[i], &app, width, height);
+        }
 
         SDL_GL_SwapWindow(window);
         SDL_Delay(16);
