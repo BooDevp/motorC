@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
     Modelo modelo_obj;
     if (cargar_modelo(&modelo_obj, &arena_escena, "assets/models/Icecream.obj"))
     {
-        printf("¡Modelo cargado con éxito!\n");
+        printf("¡Modelo cargado con éxito!\n");        
     }
 
     // CONFIGURACIÓN CÁMARA
