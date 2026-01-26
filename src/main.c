@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        // 1. Limpiar la pantalla y el buffer de profundidad
+        // Limpiar la pantalla y el buffer de profundidad
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // El renderizador se encarga de todo lo visual
