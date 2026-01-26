@@ -7,6 +7,7 @@
 #define MODEL_H
 
 #include <stddef.h> // Necesario para offsetof
+#include <math.h>
 
 // Estructura de vértice "Interleaved" (todo junto para la GPU)
 typedef struct
@@ -25,6 +26,11 @@ typedef struct
     GLuint vao;
     GLuint vbo;
     int num_vertices;
+
+    // --- NUEVO: Estado de transformación del modelo ---
+    float posicion[3];
+    float escala[3];
+    float rotacion[3];
 } Modelo;
 
 /**
@@ -161,19 +167,34 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     glEnableVertexAttribArray(5);
 
     out_modelo->num_vertices = total_render_vertices;
+
+    // --- NUEVO: Inicializar transformación por defecto ---
+    out_modelo->posicion[0] = 0.0f;
+    out_modelo->posicion[1] = 0.0f;
+    out_modelo->posicion[2] = 0.0f;
+    
+    out_modelo->escala[0] = 1.0f;
+    out_modelo->escala[1] = 1.0f;
+    out_modelo->escala[2] = 1.0f;
+    
+    out_modelo->rotacion[0] = 0.0f;
+    out_modelo->rotacion[1] = 0.0f;
+    out_modelo->rotacion[2] = 0.0f;
+
     glBindVertexArray(0);
     fast_obj_destroy(mesh);
     return true;
 }
 
 /**
- * Setup Matrices: Ahora solo calcula Proyección * Vista.
- * El modelo se asume en la identidad (0,0,0) sin rotación.
+ * Setup Matrices: Calcula MVP = Proj * View * Model
+ * El modelo aplica transformaciones en orden: Escala -> Rotación (YXZ) -> Traslación
  */
-static inline void setup_matrices(GraphicsState *gs, int width, int height, AppState app)
+static inline void setup_matrices(GraphicsState *gs, int width, int height, Modelo *m, AppState app)
 {
     glUseProgram(gs->program);
 
+    // 1. Matriz de Proyección (Perspectiva)
     float aspect = (float)width / (float)height;
     float fov_rad = app.camera_fov * (3.14159265f / 180.0f);
     float f = 1.0f / tanf(fov_rad / 2.0f);
@@ -184,13 +205,47 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, AppS
         0, 0, (app.camera_far + app.camera_near) / (app.camera_near - app.camera_far), -1,
         0, 0, (2 * app.camera_far * app.camera_near) / (app.camera_near - app.camera_far), 0};
 
+    // 2. Matriz de Vista (Cámara)
+    // Desplaza la escena hacia atrás según app.camera_distance
     float view[16] = {
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, -app.camera_distance, 1};
 
-    // MVP = Proj * View (ya que Model es Identidad)
+    // 3. Matriz de Modelo (Transformación completa)
+    // Convertimos grados a radianes para los 3 ejes
+    float radX = m->rotacion[0] * (3.14159265f / 180.0f);
+    float radY = m->rotacion[1] * (3.14159265f / 180.0f);
+    float radZ = m->rotacion[2] * (3.14159265f / 180.0f);
+
+    float cx = cosf(radX), sx = sinf(radX);
+    float cy = cosf(radY), sy = sinf(radY);
+    float cz = cosf(radZ), sz = sinf(radZ);
+
+    // Combinación de Escala * Rotación (YXZ) * Traslación
+    // Formato Column-Major para OpenGL
+    float model[16] = {
+        m->escala[0] * (cy * cz + sy * sx * sz), m->escala[1] * (cx * sz), m->escala[2] * (-sy * cz + cy * sx * sz), 0,
+        m->escala[0] * (-cy * sz + sy * sx * cz), m->escala[1] * (cx * cz), m->escala[2] * (sy * sz + cy * sx * cz), 0,
+        m->escala[0] * (sy * cx), m->escala[1] * (-sx), m->escala[2] * (cy * cx), 0,
+        m->posicion[0], m->posicion[1], m->posicion[2], 1};
+
+    // 4. Calcular PV = View * Proj
+    float pv[16];
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            pv[i * 4 + j] = 0;
+            for (int k = 0; k < 4; k++)
+            {
+                pv[i * 4 + j] += view[i * 4 + k] * proj[k * 4 + j];
+            }
+        }
+    }
+
+    // 5. Calcular MVP = Model * PV
     float mvp[16];
     for (int i = 0; i < 4; i++)
     {
@@ -199,12 +254,12 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, AppS
             mvp[i * 4 + j] = 0;
             for (int k = 0; k < 4; k++)
             {
-                // Orden correcto para OpenGL column-major: View * Proj
-                mvp[i * 4 + j] += view[i * 4 + k] * proj[k * 4 + j];
+                mvp[i * 4 + j] += model[i * 4 + k] * pv[k * 4 + j];
             }
         }
     }
 
+    // Pasar la matriz final al shader
     if (gs->mvp_location != -1)
     {
         glUniformMatrix4fv(gs->mvp_location, 1, GL_FALSE, mvp);

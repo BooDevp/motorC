@@ -53,7 +53,7 @@ typedef struct
 typedef struct
 {
     bool wireframe;
-    bool running;    
+    bool running;
     float camera_fov;
     float camera_near;
     float camera_far;
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
     AppState app = {
         .wireframe = false,
-        .running = true,        
+        .running = true,
         .camera_fov = CAMERA_FOV,
         .camera_near = CAMERA_NEAR,
         .camera_far = CAMERA_FAR,
@@ -268,8 +268,8 @@ int main(int argc, char *argv[])
         debug_log("Uniform uMVP ubicado en: %d", gs.mvp_location);
     }
 
-    Modelo mi_cubo_obj;
-    if (cargar_modelo(&mi_cubo_obj, &arena_escena, "assets/models/Icecream.obj"))
+    Modelo modelo_obj;
+    if (cargar_modelo(&modelo_obj, &arena_escena, "assets/models/Icecream.obj"))
     {
         printf("¡Modelo cargado con éxito!\n");
     }
@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
     // CONFIGURAR MATRICES
     int width, height;
     SDL_GetWindowSizeInPixels(window, &width, &height);
-    setup_matrices(&gs, width, height, app);
+    setup_matrices(&gs, width, height, &modelo_obj, app);
 
     debug_log("\n========================================");
     debug_log("MOTOR LISTO");
@@ -319,15 +319,15 @@ int main(int argc, char *argv[])
             {
                 SDL_GetWindowSizeInPixels(window, &width, &height);
                 glViewport(0, 0, width, height);
-                setup_matrices(&gs, width, height, app);
+                setup_matrices(&gs, width, height, &modelo_obj, app);
                 debug_log("Ventana redimensionada: %dx%d", width, height);
             }
-        }        
+        }
 
         // Actualizar matrices cada frame
-        setup_matrices(&gs, width, height, app);
+        setup_matrices(&gs, width, height, &modelo_obj, app);
 
-        render_frame(&gs, &app, &mi_cubo_obj);
+        render_frame(&gs, &app, &modelo_obj);
         SDL_GL_SwapWindow(window);
         SDL_Delay(16);
     }
