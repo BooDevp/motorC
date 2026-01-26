@@ -30,7 +30,7 @@ typedef struct
 /**
  * Centra el modelo en el origen y lo escala para que encaje en el rango [-1, 1]
  */
-static void centrar_modelo(Vertice *vertices, unsigned int num_vertices)
+static void normalizar_modelo(Vertice *vertices, unsigned int num_vertices)
 {
     if (num_vertices == 0)
         return;
@@ -138,7 +138,7 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
         vert_offset += vertices_en_esta_cara;
     }
 
-    centrar_modelo(datos_gpu, total_render_vertices);
+    normalizar_modelo(datos_gpu, total_render_vertices);
 
     glGenVertexArrays(1, &out_modelo->vao);
     glGenBuffers(1, &out_modelo->vbo);
