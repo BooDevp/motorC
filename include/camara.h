@@ -3,18 +3,20 @@
 
 #include <math.h>
 
-typedef enum {
+typedef enum
+{
     CAMARA_LIBRE,
     CAMARA_ISOMETRICA,
     CAMARA_FRONTAL
 } TipoCamara;
 
-typedef struct {
+typedef struct
+{
     TipoCamara tipo;
     float posicion[3];
     float rotacion[3];
     float distancia;
-    
+
     // Propiedades de lente/proyección
     float fov;
     float near_plane;
@@ -22,7 +24,8 @@ typedef struct {
 } Camara;
 
 // Inicialización rápida con valores seguros
-static inline Camara crear_camara_defecto() {
+static inline Camara crear_camara_defecto()
+{
     Camara c = {0};
     c.tipo = CAMARA_FRONTAL;
     c.distancia = 4.0f;
@@ -32,28 +35,43 @@ static inline Camara crear_camara_defecto() {
     return c;
 }
 
-static inline void calcular_matriz_vista(Camara *cam, float *view_matrix) {
+static inline void calcular_matriz_vista(Camara *cam, float *view_matrix)
+{
     float rx = (cam->tipo == CAMARA_ISOMETRICA) ? 35.264f : cam->rotacion[0];
-    float ry = (cam->tipo == CAMARA_ISOMETRICA) ? 45.0f   : cam->rotacion[1];
+    float ry = (cam->tipo == CAMARA_ISOMETRICA) ? 45.0f : cam->rotacion[1];
 
     float radX = rx * (3.14159265f / 180.0f);
     float radY = ry * (3.14159265f / 180.0f);
     float cx = cosf(radX), sx = sinf(radX);
     float cy = cosf(radY), sy = sinf(radY);
 
-    view_matrix[0] = cy;      view_matrix[4] = 0.0f; view_matrix[8]  = sy;       view_matrix[12] = -cam->posicion[0];
-    view_matrix[1] = sx * sy; view_matrix[5] = cx;   view_matrix[9]  = -sx * cy; view_matrix[13] = -cam->posicion[1];
-    view_matrix[2] = -cx * sy;view_matrix[6] = sx;   view_matrix[10] = cx * cy;  view_matrix[14] = -cam->distancia;
-    view_matrix[3] = 0.0f;    view_matrix[7] = 0.0f; view_matrix[11] = 0.0f;     view_matrix[15] = 1.0f;
+    view_matrix[0] = cy;
+    view_matrix[4] = 0.0f;
+    view_matrix[8] = sy;
+    view_matrix[12] = -cam->posicion[0];
+    view_matrix[1] = sx * sy;
+    view_matrix[5] = cx;
+    view_matrix[9] = -sx * cy;
+    view_matrix[13] = -cam->posicion[1];
+    view_matrix[2] = -cx * sy;
+    view_matrix[6] = sx;
+    view_matrix[10] = cx * cy;
+    view_matrix[14] = -cam->distancia;
+    view_matrix[3] = 0.0f;
+    view_matrix[7] = 0.0f;
+    view_matrix[11] = 0.0f;
+    view_matrix[15] = 1.0f;
 }
 
-static inline void calcular_matriz_proyeccion(Camara *cam, int width, int height, float *proj_matrix) {
+static inline void calcular_matriz_proyeccion(Camara *cam, int width, int height, float *proj_matrix)
+{
     float aspect = (float)width / (float)height;
     float fov_rad = cam->fov * (3.14159265f / 180.0f);
     float f = 1.0f / tanf(fov_rad / 2.0f);
 
     // Limpiar matriz
-    for(int i=0; i<16; i++) proj_matrix[i] = 0;
+    for (int i = 0; i < 16; i++)
+        proj_matrix[i] = 0;
 
     proj_matrix[0] = f / aspect;
     proj_matrix[5] = f;
