@@ -10,6 +10,7 @@
 // EXTERNAL
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+
 #define FAST_OBJ_IMPLEMENTATION
 #include "external/fast_obj.h"
 #define GL_IMPLEMENTATION
@@ -106,7 +107,7 @@ int main(int argc, char *argv[])
     PostProcessSystem pp;
     post_init(&pp, width, height);
 
-    uint64_t last_time = SDL_GetTicks(); // Tiempo en milisegundos
+    uint64_t last_time = SDL_GetTicks();
     float delta_time = 0.0f;
 
     PerfCounter perf = perf_init();
@@ -212,10 +213,9 @@ int main(int argc, char *argv[])
     // LIMPIEZA
     debug_log("\nFinalizando...");
     cleanup(window, &gs);
-
     free(arena_escena.base);
     debug_log("Arena liberada!");
-
     printf("\nAplicación terminada correctamente.\n");
+    
     return 0;
 }
