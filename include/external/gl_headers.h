@@ -47,6 +47,10 @@ typedef int GLsizei;
 #define GL_DEPTH_STENCIL_ATTACHMENT 0x821A
 #define GL_DEPTH24_STENCIL8 0x88F0
 #define GL_FRAMEBUFFER_COMPLETE 0x8CD5
+#define GL_TEXTURE0           0x84C0
+#define GL_TEXTURE1           0x84C1
+#define GL_TEXTURE2           0x84C2
+#define GL_CLAMP_TO_EDGE      0x812F
 
 // ============================================================================
 // DEFINICIÓN DE TIPOS DE FUNCIÓN (TYPEDEFS)
@@ -89,6 +93,8 @@ typedef void(__stdcall *PFNGLDELETEFRAMEBUFFERSPROC)(GLsizei n, const GLuint *fr
 typedef void(__stdcall *PFNGLDELETERENDERBUFFERSPROC)(GLsizei n, const GLuint *renderbuffers);
 typedef void(__stdcall *PFNGLUNIFORM1FPROC)(GLint location, GLfloat v0);
 typedef void(__stdcall *PFNGLUNIFORM2FPROC)(GLint location, GLfloat v0, GLfloat v1);
+typedef void(__stdcall *PFNGLACTIVETEXTUREPROC)(GLenum texture);
+typedef void(__stdcall *PFNGLUNIFORM1IPROC)(GLint location, GLint v0);
 
 // ============================================================================
 // MACRO DE CONTROL PARA IMPLEMENTACIÓN UNICA
@@ -144,6 +150,8 @@ GL_DEF PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers GL_INIT(NULL);
 // Postprocesado
 GL_DEF PFNGLUNIFORM1FPROC glUniform1f GL_INIT(NULL);
 GL_DEF PFNGLUNIFORM2FPROC glUniform2f GL_INIT(NULL);
+GL_DEF PFNGLACTIVETEXTUREPROC glActiveTexture GL_INIT(NULL);
+GL_DEF PFNGLUNIFORM1IPROC glUniform1i GL_INIT(NULL);
 
 bool load_opengl_functions(void);
 void debug_log(const char *format, ...);
@@ -180,7 +188,7 @@ bool load_opengl_functions(void)
     glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)SDL_GL_GetProcAddress("glGetProgramInfoLog");
     glDeleteProgram = (PFNGLDELETEPROGRAMPROC)SDL_GL_GetProcAddress("glDeleteProgram");
     glUseProgram = (PFNGLUSEPROGRAMPROC)SDL_GL_GetProcAddress("glUseProgram");
-    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)SDL_GL_GetProcAddress("glGetUniformLocation");    
+    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)SDL_GL_GetProcAddress("glGetUniformLocation");
     glUniform1f = (PFNGLUNIFORM1FPROC)SDL_GL_GetProcAddress("glUniform1f");
     glUniform2f = (PFNGLUNIFORM2FPROC)SDL_GL_GetProcAddress("glUniform2f");
     glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC)SDL_GL_GetProcAddress("glUniformMatrix4fv");
@@ -207,6 +215,9 @@ bool load_opengl_functions(void)
     glCheckFramebufferStatus = (PFNGLCHECKFRAMEBUFFERSTATUSPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatus");
     glDeleteFramebuffers = (PFNGLDELETEFRAMEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteFramebuffers");
     glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffers");
+
+    glActiveTexture = (PFNGLACTIVETEXTUREPROC)SDL_GL_GetProcAddress("glActiveTexture");
+    glUniform1i = (PFNGLUNIFORM1IPROC)SDL_GL_GetProcAddress("glUniform1i");
 
     if (!glGenFramebuffers || !glBindFramebuffer)
     {

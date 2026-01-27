@@ -14,7 +14,6 @@ static inline Escena cargar_escena_nivel_1(Arena *arena)
     Modelo *h1 = escena_añadir_modelo(&escena, arena, "assets/models/Cigarro.obj");
     if (h1)
     {
-        h1->rotacion[1] = 0.0f;
         h1->posicion[2] = 1.5f;
     }
 
