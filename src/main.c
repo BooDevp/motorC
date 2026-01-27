@@ -19,8 +19,8 @@
 // ENGINE
 #include "engine/arena.h"
 #include "engine/shader.h"
-#include "engine/engine.h"
 #include "engine/appstate.h"
+#include "engine/engine.h"
 #include "engine/camara.h"
 #include "engine/model.h"
 #include "engine/render.h"
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
     // INICIALIZAR OPENGL
     debug_log("Inicializando OpenGL...");
-    if (!init_opengl(window))
+    if (!init_opengl(window, &app))
     {
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -118,11 +118,10 @@ int main(int argc, char *argv[])
     debug_log("  ESC - Salir");
     debug_log("  F1  - Alternar wireframe");
     debug_log("  F2  - Alternar postprocesado");
+    debug_log("  F3  - Alternar VSync");
     debug_log("========================================\n");
 
     // BUCLE PRINCIPAL
-    debug_log("Iniciando bucle de renderizado...");
-
     while (app.running)
     {
         SDL_Event event;
@@ -164,6 +163,20 @@ int main(int argc, char *argv[])
                 {
                     app.postprocesado = !app.postprocesado;
                     debug_log("Postprocesado: %s", app.postprocesado ? "ON" : "OFF");
+                }
+
+                if (event.key.key == SDLK_F3)
+                {
+                    app.vsync = !app.vsync;
+                    if (app.vsync)
+                    {
+                        SDL_GL_SetSwapInterval(1);
+                    }
+                    else
+                    {
+                        SDL_GL_SetSwapInterval(0);
+                    }
+                    debug_log("VSync: %s", app.vsync ? "ON" : "OFF");
                 }
             }
 
@@ -216,6 +229,6 @@ int main(int argc, char *argv[])
     free(arena_escena.base);
     debug_log("Arena liberada!");
     printf("\nAplicación terminada correctamente.\n");
-    
+
     return 0;
 }

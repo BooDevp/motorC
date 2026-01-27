@@ -62,7 +62,7 @@ static inline bool init_sdl(SDL_Window **window)
 /**
  * Inicializa OpenGL con configuraciones básicas
  */
-static inline bool init_opengl(SDL_Window *window)
+static inline bool init_opengl(SDL_Window *window, AppState *app)
 {
     // Crear contexto OpenGL
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
@@ -97,6 +97,14 @@ static inline bool init_opengl(SDL_Window *window)
     glClearColor(CLEAR_COLOR_R, CLEAR_COLOR_G, CLEAR_COLOR_B, CLEAR_COLOR_A);
 
     debug_log("OpenGL configurado: Depth Test ON, Culling ON");
+
+    // VSYNC
+    if (app->vsync){
+        SDL_GL_SetSwapInterval(1);
+    } else {
+        SDL_GL_SetSwapInterval(0);
+    }    
+
     return true;
 }
 
