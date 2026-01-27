@@ -1,12 +1,20 @@
 #version 330 core
+
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
 layout(location = 3) in vec3 aColor;
+
 uniform mat4 uMVP;
+
 out vec3 vNormal;
 out vec3 vColor;
+
 void main() {
     gl_Position = uMVP * vec4(aPos, 1.0);
+    
+    // Pasamos la normal. 
+    // Nota: Para modelos complejos, lo ideal sería usar una 'Normal Matrix',
+    // pero por ahora la pasamos directa para mantener el rendimiento.
     vNormal = aNormal;
     vColor = aColor;
 }

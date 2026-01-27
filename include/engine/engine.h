@@ -5,9 +5,9 @@
 #define WINDOW_HEIGHT 600
 #define WINDOW_TITLE "Motor OpenGL 3.3"
 
-#define CLEAR_COLOR_R (18.0f / 255.0f)
-#define CLEAR_COLOR_G (18.0f / 255.0f)
-#define CLEAR_COLOR_B (20.0f / 255.0f)
+#define CLEAR_COLOR_R (112.0f / 255.0f)
+#define CLEAR_COLOR_G (113.0f / 255.0f)
+#define CLEAR_COLOR_B (118.0f / 255.0f)
 #define CLEAR_COLOR_A 1.0f
 
 typedef struct

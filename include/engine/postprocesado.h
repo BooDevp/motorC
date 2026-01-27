@@ -113,7 +113,7 @@ void post_begin(PostProcessSystem *pp)
 {    
     glBindFramebuffer(GL_FRAMEBUFFER, pp->fbo);
     glViewport(0, 0, pp->width, pp->height);
-    glClearColor(0.1f, 0.1f, 0.12f, 1.0f); 
+    glClearColor(CLEAR_COLOR_R, CLEAR_COLOR_G, CLEAR_COLOR_B, CLEAR_COLOR_A);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 }
@@ -123,7 +123,7 @@ void post_end(PostProcessSystem *pp)
     // Volvemos al buffer de la ventana principal
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(CLEAR_COLOR_R, CLEAR_COLOR_G, CLEAR_COLOR_B, CLEAR_COLOR_A);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Dibujamos el quad con la textura procesada

@@ -2,29 +2,24 @@
  * Motor Gráfico Simple con OpenGL 3.3 y SDL3 - VERSIÓN WINDOWS
  */
 
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
+// C
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
 
+// EXTERNAL
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 #define FAST_OBJ_IMPLEMENTATION
 #include "external/fast_obj.h"
-
 #define GL_IMPLEMENTATION
 #include "external/gl_headers.h"
 
+// ENGINE
 #include "engine/arena.h"
 #include "engine/shader.h"
 #include "engine/engine.h"
-
-typedef struct
-{
-    bool wireframe;
-    bool running;
-    bool postprocesado;
-} AppState;
-
+#include "engine/appstate.h"
 #include "engine/camara.h"
 #include "engine/model.h"
 #include "engine/render.h"
@@ -51,11 +46,7 @@ int main(int argc, char *argv[])
     printf("MOTOR OPENGL 3.3 (Windows)\n");
     printf("========================================\n\n");
 
-    AppState app = {
-        .wireframe = false,
-        .running = true,
-        .postprocesado = true,
-    };
+    AppState app = init_appstate();
 
     GraphicsState gs = {0};
     SDL_Window *window = NULL;
@@ -132,6 +123,7 @@ int main(int argc, char *argv[])
     {
         SDL_Event event;
         uint64_t current_time = SDL_GetTicks();
+
         // Convertimos la diferencia de ms a segundos (float)
         delta_time = (current_time - last_time) / 1000.0f;
         last_time = current_time;
@@ -184,24 +176,19 @@ int main(int argc, char *argv[])
 
         // Empezamos a dibujar en el Framebuffer (Textura)
         if (app.postprocesado)
-        {
             post_begin(&pp);
-        }
 
         // El renderizador se encarga de todo lo visual
         for (int i = 0; i < nivel.cantidad; i++)
         {
             render_frame(&gs, &mi_camara, &nivel.modelos[i], &app, width, height);
-
             // Rotar el objeto
             nivel.modelos[i].rotacion[1] += 20.0f * delta_time;
         }
 
         // Volvemos al buffer de pantalla y dibujamos el Quad con el efecto
         if (app.postprocesado)
-        {
             post_end(&pp);
-        }
 
         SDL_GL_SwapWindow(window);
     }
