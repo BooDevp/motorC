@@ -6,6 +6,9 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#define FAST_OBJ_IMPLEMENTATION
+#include "external/fast_obj.h"
+
 #include <stddef.h>
 #include <math.h>
 
@@ -35,6 +38,8 @@ typedef struct
 
     GLuint shader; // 0 = default, >0 = custom shader program
     GLint mvp_location;
+
+    GLuint textura_id;
 } Modelo;
 
 /**
@@ -127,6 +132,13 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
                 datos_gpu[curr_v].x = mesh->positions[idx.p * 3 + 0];
                 datos_gpu[curr_v].y = mesh->positions[idx.p * 3 + 1];
                 datos_gpu[curr_v].z = mesh->positions[idx.p * 3 + 2];
+
+                // --- PARA LAS UVs ---
+                if (mesh->texcoord_count > 1)
+                {
+                    datos_gpu[curr_v].u = mesh->texcoords[idx.t * 2 + 0];
+                    datos_gpu[curr_v].v = mesh->texcoords[idx.t * 2 + 1];
+                }
 
                 if (mesh->normal_count > 1)
                 {
@@ -263,6 +275,27 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, Mode
     if (loc != -1)
     {
         glUniformMatrix4fv(loc, 1, GL_FALSE, mvp);
+    }
+
+    // Activar textura de máscara si el modelo la tiene
+    if (m->textura_id != 0)
+    {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m->textura_id);
+
+        // Informar al shader que use la unidad 0
+        GLint tex_loc = glGetUniformLocation(current_program, "u_mask");
+        if (tex_loc != -1)
+        {
+            glUniform1i(tex_loc, 0);
+        }
+    }
+
+    // Actualizar tiempo para shaders que lo usen
+    GLint time_loc = glGetUniformLocation(current_program, "iTime");
+    if (time_loc != -1)
+    {
+        glUniform1f(time_loc, (float)SDL_GetTicks() / 1000.0f);
     }
 }
 

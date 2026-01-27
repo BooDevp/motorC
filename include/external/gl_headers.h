@@ -96,6 +96,9 @@ typedef void(__stdcall *PFNGLUNIFORM2FPROC)(GLint location, GLfloat v0, GLfloat 
 typedef void(__stdcall *PFNGLACTIVETEXTUREPROC)(GLenum texture);
 typedef void(__stdcall *PFNGLUNIFORM1IPROC)(GLint location, GLint v0);
 
+// TEXTURA
+typedef void(__stdcall *PFNGLGENERATEMIPMAPPROC)(GLenum target);
+
 // ============================================================================
 // MACRO DE CONTROL PARA IMPLEMENTACIÓN UNICA
 // ============================================================================
@@ -152,6 +155,9 @@ GL_DEF PFNGLUNIFORM1FPROC glUniform1f GL_INIT(NULL);
 GL_DEF PFNGLUNIFORM2FPROC glUniform2f GL_INIT(NULL);
 GL_DEF PFNGLACTIVETEXTUREPROC glActiveTexture GL_INIT(NULL);
 GL_DEF PFNGLUNIFORM1IPROC glUniform1i GL_INIT(NULL);
+
+// Textura
+GL_DEF PFNGLGENERATEMIPMAPPROC glGenerateMipmap GL_INIT(NULL);
 
 bool load_opengl_functions(void);
 void debug_log(const char *format, ...);
@@ -218,6 +224,9 @@ bool load_opengl_functions(void)
 
     glActiveTexture = (PFNGLACTIVETEXTUREPROC)SDL_GL_GetProcAddress("glActiveTexture");
     glUniform1i = (PFNGLUNIFORM1IPROC)SDL_GL_GetProcAddress("glUniform1i");
+
+    // Textura
+    glGenerateMipmap = (PFNGLGENERATEMIPMAPPROC)SDL_GL_GetProcAddress("glGenerateMipmap");
 
     if (!glGenFramebuffers || !glBindFramebuffer)
     {

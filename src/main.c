@@ -11,8 +11,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-#define FAST_OBJ_IMPLEMENTATION
-#include "external/fast_obj.h"
 #define GL_IMPLEMENTATION
 #include "external/gl_headers.h"
 
@@ -27,6 +25,7 @@
 #include "engine/escena.h"
 #include "engine/postprocesado.h"
 #include "engine/performance.h"
+#include "engine/texture.h"
 
 // Escenas
 #include "scenes/nivel1.h"
@@ -202,7 +201,7 @@ int main(int argc, char *argv[])
         {
             render_frame(&gs, &mi_camara, &nivel.modelos[i], &app, width, height);
             // Rotar el objeto
-            nivel.modelos[i].rotacion[1] += 20.0f * delta_time;
+            nivel.modelos[0].rotacion[1] += 35.0f * delta_time;
         }
 
         // Volvemos al buffer de pantalla y dibujamos el Quad con el efecto
