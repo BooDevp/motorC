@@ -49,13 +49,16 @@ typedef struct
 {
     bool wireframe;
     bool running;
+    bool postprocesado;
 } AppState;
 
 #include "engine/camara.h"
 #include "engine/model.h"
 #include "engine/render.h"
 #include "engine/escena.h"
+#include "engine/postprocesado.h"
 
+// Escenas
 #include "scenes/nivel1.h"
 
 // ============================================================================
@@ -190,6 +193,7 @@ int main(int argc, char *argv[])
     AppState app = {
         .wireframe = false,
         .running = true,
+        .postprocesado = true,
     };
 
     GraphicsState gs = {0};
@@ -246,18 +250,22 @@ int main(int argc, char *argv[])
     int width, height;
     SDL_GetWindowSizeInPixels(window, &width, &height);
 
+    PostProcessSystem pp;
+    post_init(&pp, width, height);
+
+    uint64_t last_time = SDL_GetTicks(); // Tiempo en milisegundos
+    float delta_time = 0.0f;
+
     debug_log("\n========================================");
     debug_log("MOTOR LISTO");
     debug_log("Controles:");
     debug_log("  ESC - Salir");
     debug_log("  F1  - Alternar wireframe");
+    debug_log("  F2  - Alternar postprocesado");
     debug_log("========================================\n");
 
     // BUCLE PRINCIPAL
     debug_log("Iniciando bucle de renderizado...");
-
-    uint64_t last_time = SDL_GetTicks(); // Tiempo en milisegundos
-    float delta_time = 0.0f;
 
     while (app.running)
     {
@@ -292,6 +300,12 @@ int main(int argc, char *argv[])
                     app.wireframe = !app.wireframe;
                     debug_log("Wireframe: %s", app.wireframe ? "ON" : "OFF");
                 }
+
+                if (event.key.key == SDLK_F2)
+                {
+                    app.postprocesado = !app.postprocesado;
+                    debug_log("Postprocesado: %s", app.postprocesado ? "ON" : "OFF");
+                }
             }
 
             if (event.type == SDL_EVENT_WINDOW_RESIZED)
@@ -299,20 +313,36 @@ int main(int argc, char *argv[])
                 SDL_GetWindowSizeInPixels(window, &width, &height);
                 glViewport(0, 0, width, height);
                 debug_log("Ventana redimensionada: %dx%d", width, height);
+                post_setup_buffers(&pp, width, height);
+                debug_log("Buffers de posprocesado redimensionados: %dx%d", width, height);
             }
         }
 
         // Limpiar la pantalla y el buffer de profundidad
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // Empezamos a dibujar en el Framebuffer (Textura)
+        if (app.postprocesado)
+        {
+            post_begin(&pp);
+        }
+
         // El renderizador se encarga de todo lo visual
         for (int i = 0; i < nivel.cantidad; i++)
         {
             render_frame(&gs, &mi_camara, &nivel.modelos[i], &app, width, height);
+
+            // Rotar el objeto
             nivel.modelos[i].rotacion[1] += 20.0f * delta_time;
         }
 
-        SDL_GL_SwapWindow(window);        
+        // Volvemos al buffer de pantalla y dibujamos el Quad con el efecto
+        if (app.postprocesado)
+        {
+            post_end(&pp);
+        }
+
+        SDL_GL_SwapWindow(window);
     }
 
     // LIMPIEZA
