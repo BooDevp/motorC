@@ -2,7 +2,7 @@
 #define POSTPROCESADO_H
 
 #include "external/gl_headers.h"
-#include "shader.h" // Asegúrate de que aquí esté declarado load_shader_source
+#include "shader.h"
 #include <stdio.h>
 
 typedef struct
@@ -28,11 +28,11 @@ void post_setup_buffers(PostProcessSystem *pp, int w, int h)
     if (pp->texture != 0) glDeleteTextures(1, &pp->texture);
     if (pp->rbo != 0) glDeleteRenderbuffers(1, &pp->rbo);
 
-    // 1. Crear el Framebuffer Object (FBO)
+    // Crear el Framebuffer Object (FBO)
     glGenFramebuffers(1, &pp->fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, pp->fbo);
 
-    // 2. Crear la textura de color
+    // Crear la textura de color
     glGenTextures(1, &pp->texture);
     glBindTexture(GL_TEXTURE_2D, pp->texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -40,7 +40,7 @@ void post_setup_buffers(PostProcessSystem *pp, int w, int h)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pp->texture, 0);
 
-    // 3. Crear Renderbuffer para Depth/Stencil (Necesario para el 3D)
+    // Crear Renderbuffer para Depth/Stencil (Necesario para el 3D)
     glGenRenderbuffers(1, &pp->rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, pp->rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
@@ -79,7 +79,6 @@ void post_init(PostProcessSystem *pp, int w, int h)
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 
-    // CARGA DE SHADERS USANDO TU FUNCIÓN
     char *vert_src = load_shader_source("src/postprocesado/simple.vert");
     char *frag_src = load_shader_source("src/postprocesado/simple.frag");
 
@@ -105,14 +104,13 @@ void post_init(PostProcessSystem *pp, int w, int h)
     glDeleteShader(vsh);
     glDeleteShader(fsh);
     
-    // IMPORTANTE: Liberar la memoria asignada por SDL_LoadFile
+    // Liberar la memoria asignada por SDL_LoadFile
     SDL_free(vert_src);
     SDL_free(frag_src);
 }
 
 void post_begin(PostProcessSystem *pp)
-{
-    // Todo lo que se dibuje a partir de aquí irá a la textura
+{    
     glBindFramebuffer(GL_FRAMEBUFFER, pp->fbo);
     glViewport(0, 0, pp->width, pp->height);
     glClearColor(0.1f, 0.1f, 0.12f, 1.0f); 
