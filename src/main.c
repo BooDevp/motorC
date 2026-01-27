@@ -25,6 +25,7 @@
 #include "engine/render.h"
 #include "engine/escena.h"
 #include "engine/postprocesado.h"
+#include "engine/performance.h"
 
 // Escenas
 #include "scenes/nivel1.h"
@@ -108,6 +109,8 @@ int main(int argc, char *argv[])
     uint64_t last_time = SDL_GetTicks(); // Tiempo en milisegundos
     float delta_time = 0.0f;
 
+    PerfCounter perf = perf_init();
+
     debug_log("\n========================================");
     debug_log("MOTOR LISTO");
     debug_log("Controles:");
@@ -131,6 +134,8 @@ int main(int argc, char *argv[])
         // Evitar picos si la ventana se congela o se arrastra
         if (delta_time > 0.1f)
             delta_time = 0.1f;
+
+        perf_update(&perf, window, delta_time);
 
         while (SDL_PollEvent(&event))
         {
@@ -188,7 +193,18 @@ int main(int argc, char *argv[])
 
         // Volvemos al buffer de pantalla y dibujamos el Quad con el efecto
         if (app.postprocesado)
+        {
+            glUseProgram(pp.program);
+
+            // Ya no usamos glGetUniformLocation aquí, usamos lo que guardamos
+            if (pp.timeLoc != -1)
+                glUniform1f(pp.timeLoc, SDL_GetTicks() / 1000.0f);
+
+            if (pp.resLoc != -1)
+                glUniform2f(pp.resLoc, (float)width, (float)height);
+
             post_end(&pp);
+        }
 
         SDL_GL_SwapWindow(window);
     }

@@ -15,6 +15,8 @@ typedef struct
     GLuint program;
     int width;
     int height;
+    GLint timeLoc;
+    GLint resLoc;
 } PostProcessSystem;
 
 // Recrea los buffers cuando cambia el tamaño de la ventana
@@ -54,11 +56,14 @@ void post_setup_buffers(PostProcessSystem *pp, int w, int h)
 
 void post_init(PostProcessSystem *pp, int w, int h)
 {
+    // 1. Inicializar IDs y configurar Buffers (FBO, Textura, RBO)
     pp->fbo = 0; pp->texture = 0; pp->rbo = 0;
     post_setup_buffers(pp, w, h);
 
-    // Quad que cubre toda la pantalla (-1 a 1 en NDC)
+    // 2. Definir el Quad (dos triángulos) que cubre toda la pantalla (-1 a 1 en NDC)
+    // Cada vértice tiene: Posición (x, y) y Coordenadas de Textura (u, v)
     float vertices[] = {
+        // Posicion    // UV
         -1.0f,  1.0f,  0.0f, 1.0f,
         -1.0f, -1.0f,  0.0f, 0.0f,
          1.0f, -1.0f,  1.0f, 0.0f,
@@ -68,17 +73,23 @@ void post_init(PostProcessSystem *pp, int w, int h)
          1.0f,  1.0f,  1.0f, 1.0f
     };
 
+    // 3. Crear y configurar VAO y VBO para el Quad
     glGenVertexArrays(1, &pp->vao);
     glGenBuffers(1, &pp->vbo);
+    
     glBindVertexArray(pp->vao);
     glBindBuffer(GL_ARRAY_BUFFER, pp->vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     
+    // Atributo 0: Posición (x, y)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+    
+    // Atributo 1: Coordenadas UV (u, v)
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 
+    // 4. Cargar y compilar Shaders
     char *vert_src = load_shader_source("src/postprocesado/simple.vert");
     char *frag_src = load_shader_source("src/postprocesado/simple.frag");
 
@@ -87,26 +98,35 @@ void post_init(PostProcessSystem *pp, int w, int h)
         return;
     }
 
+    // Vertex Shader
     GLuint vsh = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vsh, 1, (const char**)&vert_src, NULL);
     glCompileShader(vsh);
 
+    // Fragment Shader
     GLuint fsh = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fsh, 1, (const char**)&frag_src, NULL);
     glCompileShader(fsh);
 
+    // 5. Crear el Programa de Shader y enlazarlo
     pp->program = glCreateProgram();
     glAttachShader(pp->program, vsh);
     glAttachShader(pp->program, fsh);
     glLinkProgram(pp->program);
 
-    // Limpieza de recursos temporales
+    // 6. OPTIMIZACIÓN: Cachear ubicaciones de Uniforms
+    // Buscamos iTime e iResolution una sola vez aquí para no hacerlo en el bucle principal
+    pp->timeLoc = glGetUniformLocation(pp->program, "iTime");
+    pp->resLoc  = glGetUniformLocation(pp->program, "iResolution");
+
+    // 7. Limpieza de recursos de compilación
     glDeleteShader(vsh);
     glDeleteShader(fsh);
-    
-    // Liberar la memoria asignada por SDL_LoadFile
     SDL_free(vert_src);
     SDL_free(frag_src);
+    
+    printf("Post-procesado inicializado (Shader: simple.frag)\n");
+    if (pp->timeLoc == -1) printf("Nota: El shader no usa 'iTime' o está optimizado.\n");
 }
 
 void post_begin(PostProcessSystem *pp)
