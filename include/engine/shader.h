@@ -52,10 +52,19 @@ static GLuint compile_shader(GLenum type, const char *source)
 /**
  * Crea un programa de shaders
  */
-static inline GLuint create_shader_program(void)
+/**
+ * Crea un programa de shaders con rutas personalizadas
+ */
+static inline GLuint create_custom_shader_program(const char *vertex_path, const char *fragment_path)
 {
-    char *vertex_source = load_shader_source("src/shaders/simple.vert");
-    char *fragment_source = load_shader_source("src/shaders/simple.frag");
+    char *vertex_source = load_shader_source(vertex_path);
+    char *fragment_source = load_shader_source(fragment_path);
+
+    if (!vertex_source)
+        debug_log("ERROR: Fallo al cargar VERTEX shader: %s", vertex_path);
+
+    if (!fragment_source)
+        debug_log("ERROR: Fallo al cargar FRAGMENT shader: %s", fragment_path);
 
     if (!vertex_source || !fragment_source)
     {
@@ -99,9 +108,16 @@ static inline GLuint create_shader_program(void)
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 
-    debug_log("Programa de shaders creado (ID: %u)", program);
+    debug_log("Programa de shaders creado (ID: %u) [%s, %s]", program, vertex_path, fragment_path);
     return program;
 }
 
+/**
+ * Crea el programa de shaders por defecto
+ */
+static inline GLuint create_shader_program(void)
+{
+    return create_custom_shader_program("src/shaders/simple.vert", "src/shaders/simple.frag");
+}
 
 #endif // SHADER_H

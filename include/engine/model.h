@@ -6,7 +6,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <stddef.h> // Necesario para offsetof
+#include <stddef.h>
 #include <math.h>
 
 #define TO_RAD (SDL_PI_F / 180.0f)
@@ -32,6 +32,9 @@ typedef struct
     float posicion[3];
     float escala[3];
     float rotacion[3];
+
+    GLuint shader; // 0 = default, >0 = custom shader program
+    GLint mvp_location;
 } Modelo;
 
 /**
@@ -167,9 +170,9 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void *)offsetof(Vertice, ns));
     glEnableVertexAttribArray(5);
 
+    // Inicializacion del modelo
     out_modelo->num_vertices = total_render_vertices;
 
-    // --- NUEVO: Inicializar transformación por defecto ---
     out_modelo->posicion[0] = 0.0f;
     out_modelo->posicion[1] = 0.0f;
     out_modelo->posicion[2] = 0.0f;
@@ -182,6 +185,9 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     out_modelo->rotacion[1] = 0.0f;
     out_modelo->rotacion[2] = 0.0f;
 
+    out_modelo->shader = 0;        // Por defecto usa el shader global
+    out_modelo->mvp_location = -1; // No cached yet
+
     glBindVertexArray(0);
     fast_obj_destroy(mesh);
     return true;
@@ -193,7 +199,9 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
  */
 static inline void setup_matrices(GraphicsState *gs, int width, int height, Modelo *m, Camara *cam)
 {
-    glUseProgram(gs->program);
+    // Usar shader propio si existe, si no el global
+    GLuint current_program = (m->shader != 0) ? m->shader : gs->program;
+    glUseProgram(current_program);
 
     // Obtener Proyección desde la Cámara
     float proj[16];
@@ -240,7 +248,22 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, Mode
         }
     }
 
-    glUniformMatrix4fv(gs->mvp_location, 1, GL_FALSE, mvp);
+    // Si usamos un shader custom, necesitamos buscar su uniform location
+    // Si usamos el global, usamos la optimización gs->mvp_location
+    GLint loc = -1;
+    if (m->shader != 0)
+    {
+        loc = m->mvp_location;
+    }
+    else
+    {
+        loc = gs->mvp_location;
+    }
+
+    if (loc != -1)
+    {
+        glUniformMatrix4fv(loc, 1, GL_FALSE, mvp);
+    }
 }
 
 #endif
