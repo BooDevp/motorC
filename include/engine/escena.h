@@ -14,13 +14,11 @@ typedef struct
 /**
  * Inicializa la estructura de la escena pidiendo espacio a la arena
  */
-static inline Escena crear_escena(Arena *arena, int capacidad_maxima)
+static inline void crear_escena(Arena *arena, int capacidad_maxima, Escena *escena)
 {
-    Escena escena = {0};
-    escena.capacidad = capacidad_maxima;
-    escena.modelos = (Modelo *)arena_push(arena, sizeof(Modelo) * capacidad_maxima);
-    escena.cantidad = 0;
-    return escena;
+    escena->capacidad = capacidad_maxima;
+    escena->modelos = (Modelo *)arena_push(arena, sizeof(Modelo) * capacidad_maxima);
+    escena->cantidad = 0;
 }
 
 /**
@@ -46,7 +44,7 @@ static inline Modelo *escena_añadir_modelo(Escena *escena, Arena *arena, const 
             nuevo->mvp_location = glGetUniformLocation(shader_id, "uMVP");
             nuevo->time_location = glGetUniformLocation(shader_id, "iTime");
             nuevo->texture_location = glGetUniformLocation(shader_id, "u_mask");
-            
+
             if (nuevo->mvp_location == -1)
             {
                 debug_log("ADVERTENCIA: Shader custom (ID %u) no tiene uniform 'uMVP' o está optimizado.", shader_id);

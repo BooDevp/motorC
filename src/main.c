@@ -26,6 +26,7 @@
 #include "engine/postprocesado.h"
 #include "engine/performance.h"
 #include "engine/texture.h"
+#include "engine/controller.h"
 
 // Escenas
 #include "scenes/nivel1.h"
@@ -48,13 +49,15 @@ int main(int argc, char *argv[])
     printf("========================================\n\n");
 
     AppState app = init_appstate();
-
     GraphicsState gs = {0};
     SDL_Window *window = NULL;
 
     // GESTIÓN DE MEMORIA
     Arena arena_escena;
     arena_inicializar(&arena_escena, ARENA_SIZE_MB * 1024 * 1024);
+
+    Escena escena = {0};
+    Camara mi_camara = {0};
 
     // INICIALIZAR SDL
     debug_log("Inicializando SDL3...");
@@ -93,11 +96,19 @@ int main(int argc, char *argv[])
         debug_log("Uniform uMVP ubicado en: %d", gs.mvp_location);
     }
 
-    // CARGAR NIVEL 1
-    Escena nivel = cargar_escena_nivel_1(&arena_escena);
+    // CARGAMOS LA ESCENA
+    cargar_escena_nivel_1(&arena_escena, &escena, &mi_camara);
 
-    // CONFIGURACIÓN CÁMARA
-    Camara mi_camara = crear_camara_defecto();
+    // CONTROLADOR INTERACTIVO DEL CIGARRO
+    CigarroController cigarro_ctrl = cigarro_controller_init();
+    Modelo *cigarro_modelo = &escena.modelos[0];
+
+    // Asociar controller al modelo
+    cigarro_modelo->controller = &cigarro_ctrl;
+    cigarro_modelo->controller_update = cigarro_controller_update_and_apply;
+
+    // Inicializar parámetros del shader
+    cigarro_controller_init_shader(&cigarro_ctrl, cigarro_modelo);
 
     // CONFIGURAR MATRICES
     int width, height;
@@ -177,6 +188,14 @@ int main(int argc, char *argv[])
                     }
                     debug_log("VSync: %s", app.vsync ? "ON" : "OFF");
                 }
+
+                // Manejar input del controlador del cigarro
+                cigarro_controller_key_down(&cigarro_ctrl, event.key.key);
+            }
+
+            if (event.type == SDL_EVENT_KEY_UP)
+            {
+                cigarro_controller_key_up(&cigarro_ctrl, event.key.key);
             }
 
             if (event.type == SDL_EVENT_WINDOW_RESIZED)
@@ -197,13 +216,16 @@ int main(int argc, char *argv[])
             post_begin(&pp);
 
         // El renderizador se encarga de todo lo visual
-        for (int i = 0; i < nivel.cantidad; i++)
+        for (int i = 0; i < escena.cantidad; i++)
         {
-            render_frame(&gs, &mi_camara, &nivel.modelos[i], &app, width, height);
-        }
+            // Actualizar controller del modelo si tiene uno
+            if (escena.modelos[i].controller && escena.modelos[i].controller_update)
+            {
+                escena.modelos[i].controller_update(escena.modelos[i].controller, delta_time, &escena.modelos[i]);
+            }
 
-        // Actualizar animaciones/transformaciones DESPUÉS del renderizado
-        // nivel.modelos[0].rotacion[1] += 35.0f * delta_time;
+            render_frame(&gs, &mi_camara, &escena.modelos[i], &app, width, height);
+        }
 
         // Volvemos al buffer de pantalla y dibujamos el Quad con el efecto
         if (app.postprocesado)

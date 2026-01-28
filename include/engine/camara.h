@@ -26,15 +26,13 @@ typedef struct
 } Camara;
 
 // Inicialización rápida con valores seguros
-static inline Camara crear_camara_defecto()
+static inline void crear_camara_defecto(Camara *cam)
 {
-    Camara c = {0};
-    c.tipo = CAMARA_FRONTAL;
-    c.distancia = 4.0f;
-    c.fov = 45.0f;
-    c.near_plane = 0.1f;
-    c.far_plane = 100.0f;
-    return c;
+    cam->tipo = CAMARA_FRONTAL;
+    cam->distancia = 4.0f;
+    cam->fov = 45.0f;
+    cam->near_plane = 0.1f;
+    cam->far_plane = 100.0f;
 }
 
 static inline void calcular_matriz_vista(Camara *cam, float *view_matrix)

@@ -76,6 +76,10 @@ typedef struct
     ShaderParam *params;
     int num_params;
     int max_params;
+
+    // Controller asociado (opcional, puede ser NULL)
+    void *controller;
+    void (*controller_update)(void *ctrl, float delta_time, void *modelo);
 } Modelo;
 
 /**
@@ -100,13 +104,13 @@ static ShaderParam *modelo_get_or_create_param(Modelo *m, const char *name)
         // Necesitamos expandir el array
         int new_max = (m->max_params == 0) ? 4 : m->max_params * 2;
         ShaderParam *new_params = (ShaderParam *)SDL_realloc(m->params, new_max * sizeof(ShaderParam));
-        
+
         if (!new_params)
         {
             debug_log("ERROR: No se pudo asignar memoria para parámetros de shader");
             return NULL;
         }
-        
+
         m->params = new_params;
         m->max_params = new_max;
     }
@@ -194,24 +198,24 @@ static inline void modelo_apply_shader_params(Modelo *m)
     for (int i = 0; i < m->num_params; i++)
     {
         ShaderParam *param = &m->params[i];
-        
+
         switch (param->type)
         {
         case SHADER_PARAM_FLOAT:
             shader_set_float(current_program, param->name, param->value.f);
             break;
         case SHADER_PARAM_VEC2:
-            shader_set_vec2(current_program, param->name, 
-                          param->value.vec2[0], param->value.vec2[1]);
+            shader_set_vec2(current_program, param->name,
+                            param->value.vec2[0], param->value.vec2[1]);
             break;
         case SHADER_PARAM_VEC3:
             shader_set_vec3(current_program, param->name,
-                          param->value.vec3[0], param->value.vec3[1], param->value.vec3[2]);
+                            param->value.vec3[0], param->value.vec3[1], param->value.vec3[2]);
             break;
         case SHADER_PARAM_VEC4:
             shader_set_vec4(current_program, param->name,
-                          param->value.vec4[0], param->value.vec4[1], 
-                          param->value.vec4[2], param->value.vec4[3]);
+                            param->value.vec4[0], param->value.vec4[1],
+                            param->value.vec4[2], param->value.vec4[3]);
             break;
         case SHADER_PARAM_INT:
             shader_set_int(current_program, param->name, param->value.i);
@@ -386,6 +390,10 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     out_modelo->params = NULL;
     out_modelo->num_params = 0;
     out_modelo->max_params = 0;
+
+    // Inicializar controller (opcional)
+    out_modelo->controller = NULL;
+    out_modelo->controller_update = NULL;
 
     glBindVertexArray(0);
     fast_obj_destroy(mesh);
