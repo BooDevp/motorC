@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
                 {
                     m->handle_event(m->controller, &event);
                 }
-            }
+            }            
 
             // Redimensionado de ventana
             if (event.type == SDL_EVENT_WINDOW_RESIZED)
@@ -219,6 +219,7 @@ int main(int argc, char *argv[])
             }
 
             render_frame(&gs, &mi_camara, &escena.modelos[i], &app, width, height);
+            escena.modelos[0].rotacion[1] += 20.0f * delta_time;
         }
 
         // Volvemos al buffer de pantalla y dibujamos el Quad con el efecto

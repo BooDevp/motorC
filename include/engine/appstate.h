@@ -14,7 +14,7 @@ static inline AppState init_appstate(){
         .vsync = true,
         .wireframe = false,
         .running = true,
-        .postprocesado = true,
+        .postprocesado = false,
     };
     return app;
 } 
