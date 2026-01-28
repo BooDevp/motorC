@@ -80,6 +80,7 @@ typedef struct
     // Controller asociado (opcional, puede ser NULL)
     void *controller;
     void (*controller_update)(void *ctrl, float delta_time, void *modelo);
+    void (*handle_event)(void *ctrl, SDL_Event *e);
 } Modelo;
 
 /**

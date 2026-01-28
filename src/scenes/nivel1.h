@@ -1,37 +1,34 @@
 #ifndef NIVEL_1_H
 #define NIVEL_1_H
 
-#include "engine/escena.h"
-#include "engine/shader.h"
+#define NUM_MODELOS 1
 
-#define NUM_MODELOS 2
-
-// Escena 1
-static inline void cargar_escena_nivel_1(Arena *arena, Escena *escena, Camara *cam, CigarroController *cigarro_ctrl)
+static inline void cargar_escena_nivel_1(Arena *arena, Escena *escena, Camara *cam)
 {
-    // INIT
     crear_escena(arena, NUM_MODELOS, escena);
     crear_camara_defecto(cam);
-    cigarro_controller_init(cigarro_ctrl);
 
-    // Shader custom
     GLuint shaderCigarro = create_custom_shader_program("src/shaders/simple.vert", "src/shaders/cigarro.frag");
+    Modelo *m = escena_añadir_modelo(escena, arena, "assets/models/Cigarro.obj", shaderCigarro);
 
-    Modelo *h1 = escena_añadir_modelo(escena, arena, "assets/models/Cigarro.obj", shaderCigarro);
-    if (h1)
+    if (m)
     {
-        h1->posicion[2] = 1.5f;
-        h1->rotacion[1] = -90.0f;
-        h1->controller = cigarro_ctrl;
-        h1->controller_update = cigarro_controller_update_and_apply;
+        m->posicion[2] = 1.5f;
+        m->rotacion[1] = -45.f;
+        m->textura_id = cargar_textura("assets/textures/cigarro_mask.png");
 
-        // Esta es la textura que pintaste en Blender donde la punta es blanca y el resto negro
-        h1->textura_id = cargar_textura("assets/textures/cigarro_mask.png");
+        // Reservamos memoria para los datos del controlador en la Arena
+        CigarroController *c_data = (CigarroController *)arena_push(arena, sizeof(CigarroController));
+        cigarro_controller_init(c_data);
 
-        cigarro_controller_init_shader(cigarro_ctrl, h1);
+        // Asignamos las funciones al modelo
+        m->controller = c_data;
+        m->controller_update = cigarro_update;
+        m->handle_event = cigarro_handle_event;
+
+        // Setup inicial del shader
+        modelo_set_vec3(m, "colorBrasa", 1.0f, 0.25f, 0.0f);
     }
-
-    debug_log("Nivel 1 cargado: %d modelos", escena->cantidad);
 }
 
 #endif

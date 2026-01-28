@@ -26,6 +26,7 @@
 #include "engine/postprocesado.h"
 #include "engine/performance.h"
 #include "engine/texture.h"
+#include "engine/controller.h"
 #include "engine/controllers/cigarro_controller.h"
 
 // Escenas
@@ -58,7 +59,6 @@ int main(int argc, char *argv[])
 
     Escena escena = {0};
     Camara mi_camara = {0};
-    CigarroController cigarro_ctrl = {0};
 
     // INICIALIZAR SDL
     debug_log("Inicializando SDL3...");
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
     }
 
     // CARGAMOS LA ESCENA
-    cargar_escena_nivel_1(&arena_escena, &escena, &mi_camara, &cigarro_ctrl);
+    cargar_escena_nivel_1(&arena_escena, &escena, &mi_camara);
 
     // CONFIGURAR MATRICES
     int width, height;
@@ -139,12 +139,14 @@ int main(int argc, char *argv[])
 
         while (SDL_PollEvent(&event))
         {
+            // Eventos Globales del Sistema
             if (event.type == SDL_EVENT_QUIT)
             {
                 app.running = false;
                 debug_log("Evento QUIT recibido");
             }
 
+            // Eventos de Teclas de Control del Motor (F1, F2, ESC...)
             if (event.type == SDL_EVENT_KEY_DOWN)
             {
                 if (event.key.key == SDLK_ESCAPE)
@@ -178,23 +180,25 @@ int main(int argc, char *argv[])
                     }
                     debug_log("VSync: %s", app.vsync ? "ON" : "OFF");
                 }
-
-                // Manejar input del controlador del cigarro
-                cigarro_controller_key_down(&cigarro_ctrl, event.key.key);
             }
 
-            if (event.type == SDL_EVENT_KEY_UP)
+            // REPARTIDOR GENÉRICO: Pasamos el evento a todos los modelos de la escena
+            // Esto sustituye a las funciones de "key_down" y "key_up" específicas del cigarro
+            for (int i = 0; i < escena.cantidad; i++)
             {
-                cigarro_controller_key_up(&cigarro_ctrl, event.key.key);
+                Modelo *m = &escena.modelos[i];
+                if (m->controller && m->handle_event)
+                {
+                    m->handle_event(m->controller, &event);
+                }
             }
 
+            // Redimensionado de ventana
             if (event.type == SDL_EVENT_WINDOW_RESIZED)
             {
                 SDL_GetWindowSizeInPixels(window, &width, &height);
                 glViewport(0, 0, width, height);
-                debug_log("Ventana redimensionada: %dx%d", width, height);
                 post_setup_buffers(&pp, width, height);
-                debug_log("Buffers de posprocesado redimensionados: %dx%d", width, height);
             }
         }
 
