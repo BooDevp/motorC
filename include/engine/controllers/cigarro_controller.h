@@ -3,41 +3,37 @@
  * Sistema de control de input para interacción con modelos y shaders
  */
 
-#ifndef CONTROLLER_H
-#define CONTROLLER_H
+#ifndef CIGARRO_CONTROLLER_H
+#define CIGARRO_CONTROLLER_H
 
 #include <stdbool.h>
-#include "model.h"
 
 // Estado del controlador del cigarro
 typedef struct
 {
-    bool space_pressed;           // Estado actual de la tecla espacio
-    float intensidad_actual;      // Intensidad actual (0.0 - 1.0)
-    float intensidad_objetivo;    // Intensidad objetivo (0.0 - 1.0)
-    float velocidad_transicion;   // Velocidad de transición (unidades por segundo)
-    
+    bool space_pressed;         // Estado actual de la tecla espacio
+    float intensidad_actual;    // Intensidad actual (0.0 - 1.0)
+    float intensidad_objetivo;  // Intensidad objetivo (0.0 - 1.0)
+    float velocidad_transicion; // Velocidad de transición (unidades por segundo)
+
     // Valores del shader
-    float intensidad_min;         // Intensidad mínima (apagado)
-    float intensidad_max;         // Intensidad máxima (encendido)
+    float intensidad_min; // Intensidad mínima (apagado)
+    float intensidad_max; // Intensidad máxima (encendido)
 } CigarroController;
 
 /**
  * Inicializa el controlador del cigarro
  */
-static inline CigarroController cigarro_controller_init(void)
+static inline void cigarro_controller_init(CigarroController *cigarro_ctrl)
 {
-    CigarroController ctrl = {0};
-    ctrl.space_pressed = false;
-    ctrl.intensidad_actual = 0.5f;      // Empieza apagado (brillo muy bajo)
-    ctrl.intensidad_objetivo = 0.5f;
-    ctrl.velocidad_transicion = 3.0f;   // Transición en ~0.5 segundos
-    
+    cigarro_ctrl->space_pressed = false;
+    cigarro_ctrl->intensidad_actual = 0.5f; // Empieza apagado (brillo muy bajo)
+    cigarro_ctrl->intensidad_objetivo = 0.5f;
+    cigarro_ctrl->velocidad_transicion = 3.0f; // Transición en ~0.5 segundos
+
     // Valores del shader
-    ctrl.intensidad_min = 0.5f;         // Brillo mínimo (cigarro apagado)
-    ctrl.intensidad_max = 4.0f;         // Brillo máximo (cigarro encendido)
-    
-    return ctrl;
+    cigarro_ctrl->intensidad_min = 0.5f; // Brillo mínimo (cigarro apagado)
+    cigarro_ctrl->intensidad_max = 4.0f; // Brillo máximo (cigarro encendido)
 }
 
 /**
@@ -48,7 +44,7 @@ static inline void cigarro_controller_init_shader(CigarroController *ctrl, Model
 {
     // Configurar parámetros iniciales del shader
     modelo_set_float(cigarro, "intensidadBrasa", ctrl->intensidad_min);
-    modelo_set_float(cigarro, "velocidadLatido", 3.0f);  // Velocidad base
+    modelo_set_float(cigarro, "velocidadLatido", 3.0f); // Velocidad base
     modelo_set_vec3(cigarro, "colorBrasa", 1.0f, 0.25f, 0.0f);
 }
 
@@ -74,11 +70,11 @@ static inline void cigarro_controller_update(CigarroController *ctrl, float delt
     {
         ctrl->intensidad_objetivo = ctrl->intensidad_min;
     }
-    
+
     // Interpolar suavemente hacia el objetivo
     float diferencia = ctrl->intensidad_objetivo - ctrl->intensidad_actual;
     float cambio = ctrl->velocidad_transicion * delta_time;
-    
+
     if (diferencia > 0)
     {
         // Encendiendo
@@ -102,12 +98,12 @@ static inline void cigarro_controller_apply(CigarroController *ctrl, Modelo *cig
 {
     // Actualizar parámetro de intensidad del shader
     modelo_set_float(cigarro, "intensidadBrasa", ctrl->intensidad_actual);
-    
+
     // Opcional: También podemos modificar la velocidad del latido
     // Cuando está más encendido, late más rápido
-    float velocidad_latido = lerp(3.0f, 6.0f, 
-                                   (ctrl->intensidad_actual - ctrl->intensidad_min) / 
-                                   (ctrl->intensidad_max - ctrl->intensidad_min));
+    float velocidad_latido = lerp(3.0f, 6.0f,
+                                  (ctrl->intensidad_actual - ctrl->intensidad_min) /
+                                      (ctrl->intensidad_max - ctrl->intensidad_min));
     modelo_set_float(cigarro, "velocidadLatido", velocidad_latido);
 }
 
@@ -141,7 +137,7 @@ static inline void cigarro_controller_update_and_apply(void *ctrl_ptr, float del
 {
     CigarroController *ctrl = (CigarroController *)ctrl_ptr;
     Modelo *modelo = (Modelo *)modelo_ptr;
-    
+
     cigarro_controller_update(ctrl, delta_time);
     cigarro_controller_apply(ctrl, modelo);
 }

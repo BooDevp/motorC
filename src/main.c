@@ -26,7 +26,7 @@
 #include "engine/postprocesado.h"
 #include "engine/performance.h"
 #include "engine/texture.h"
-#include "engine/controller.h"
+#include "engine/controllers/cigarro_controller.h"
 
 // Escenas
 #include "scenes/nivel1.h"
@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
 
     Escena escena = {0};
     Camara mi_camara = {0};
+    CigarroController cigarro_ctrl = {0};
 
     // INICIALIZAR SDL
     debug_log("Inicializando SDL3...");
@@ -97,18 +98,7 @@ int main(int argc, char *argv[])
     }
 
     // CARGAMOS LA ESCENA
-    cargar_escena_nivel_1(&arena_escena, &escena, &mi_camara);
-
-    // CONTROLADOR INTERACTIVO DEL CIGARRO
-    CigarroController cigarro_ctrl = cigarro_controller_init();
-    Modelo *cigarro_modelo = &escena.modelos[0];
-
-    // Asociar controller al modelo
-    cigarro_modelo->controller = &cigarro_ctrl;
-    cigarro_modelo->controller_update = cigarro_controller_update_and_apply;
-
-    // Inicializar parámetros del shader
-    cigarro_controller_init_shader(&cigarro_ctrl, cigarro_modelo);
+    cargar_escena_nivel_1(&arena_escena, &escena, &mi_camara, &cigarro_ctrl);
 
     // CONFIGURAR MATRICES
     int width, height;
