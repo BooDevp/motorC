@@ -120,4 +120,58 @@ static inline GLuint create_shader_program(void)
     return create_custom_shader_program("src/shaders/simple.vert", "src/shaders/simple.frag");
 }
 
+/**
+ * Funciones auxiliares para establecer uniforms en shaders
+ */
+
+// Establecer uniform float
+static inline void shader_set_float(GLuint program, const char *name, float value)
+{
+    GLint loc = glGetUniformLocation(program, name);
+    if (loc != -1)
+    {
+        glUniform1f(loc, value);
+    }
+}
+
+// Establecer uniform vec2
+static inline void shader_set_vec2(GLuint program, const char *name, float x, float y)
+{
+    GLint loc = glGetUniformLocation(program, name);
+    if (loc != -1)
+    {
+        glUniform2f(loc, x, y);
+    }
+}
+
+// Establecer uniform vec3
+static inline void shader_set_vec3(GLuint program, const char *name, float x, float y, float z)
+{
+    GLint loc = glGetUniformLocation(program, name);
+    if (loc != -1)
+    {
+        glUniform3f(loc, x, y, z);
+    }
+}
+
+// Establecer uniform vec4
+static inline void shader_set_vec4(GLuint program, const char *name, float x, float y, float z, float w)
+{
+    GLint loc = glGetUniformLocation(program, name);
+    if (loc != -1)
+    {
+        glUniform4f(loc, x, y, z, w);
+    }
+}
+
+// Establecer uniform int
+static inline void shader_set_int(GLuint program, const char *name, int value)
+{
+    GLint loc = glGetUniformLocation(program, name);
+    if (loc != -1)
+    {
+        glUniform1i(loc, value);
+    }
+}
+
 #endif // SHADER_H

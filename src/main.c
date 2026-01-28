@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
         {
             render_frame(&gs, &mi_camara, &nivel.modelos[i], &app, width, height);
             // Rotar el objeto
-            nivel.modelos[0].rotacion[1] += 35.0f * delta_time;
+            // nivel.modelos[0].rotacion[1] += 35.0f * delta_time;
         }
 
         // Volvemos al buffer de pantalla y dibujamos el Quad con el efecto

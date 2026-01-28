@@ -93,6 +93,8 @@ typedef void(__stdcall *PFNGLDELETEFRAMEBUFFERSPROC)(GLsizei n, const GLuint *fr
 typedef void(__stdcall *PFNGLDELETERENDERBUFFERSPROC)(GLsizei n, const GLuint *renderbuffers);
 typedef void(__stdcall *PFNGLUNIFORM1FPROC)(GLint location, GLfloat v0);
 typedef void(__stdcall *PFNGLUNIFORM2FPROC)(GLint location, GLfloat v0, GLfloat v1);
+typedef void(__stdcall *PFNGLUNIFORM3FPROC)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
+typedef void(__stdcall *PFNGLUNIFORM4FPROC)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
 typedef void(__stdcall *PFNGLACTIVETEXTUREPROC)(GLenum texture);
 typedef void(__stdcall *PFNGLUNIFORM1IPROC)(GLint location, GLint v0);
 
@@ -153,6 +155,8 @@ GL_DEF PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers GL_INIT(NULL);
 // Postprocesado
 GL_DEF PFNGLUNIFORM1FPROC glUniform1f GL_INIT(NULL);
 GL_DEF PFNGLUNIFORM2FPROC glUniform2f GL_INIT(NULL);
+GL_DEF PFNGLUNIFORM3FPROC glUniform3f GL_INIT(NULL);
+GL_DEF PFNGLUNIFORM4FPROC glUniform4f GL_INIT(NULL);
 GL_DEF PFNGLACTIVETEXTUREPROC glActiveTexture GL_INIT(NULL);
 GL_DEF PFNGLUNIFORM1IPROC glUniform1i GL_INIT(NULL);
 
@@ -197,6 +201,8 @@ bool load_opengl_functions(void)
     glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)SDL_GL_GetProcAddress("glGetUniformLocation");
     glUniform1f = (PFNGLUNIFORM1FPROC)SDL_GL_GetProcAddress("glUniform1f");
     glUniform2f = (PFNGLUNIFORM2FPROC)SDL_GL_GetProcAddress("glUniform2f");
+    glUniform3f = (PFNGLUNIFORM3FPROC)SDL_GL_GetProcAddress("glUniform3f");
+    glUniform4f = (PFNGLUNIFORM4FPROC)SDL_GL_GetProcAddress("glUniform4f");
     glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC)SDL_GL_GetProcAddress("glUniformMatrix4fv");
 
     // Buffers y VAOs
