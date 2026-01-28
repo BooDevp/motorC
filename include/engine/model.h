@@ -1,6 +1,6 @@
 /*
  * model.h
- * Motor OpenGL 3.3 - Carga de modelos OBJ con materiales
+ * Motor OpenGL 3.3 - Carga de modelos OBJ con materiales y shaders
  */
 
 #ifndef MODEL_H
@@ -67,6 +67,10 @@ typedef struct
     GLint mvp_location;
 
     GLuint textura_id;
+
+    // Caché de uniform locations para optimización
+    GLint time_location;
+    GLint texture_location;
 
     // Parámetros dinámicos para el shader
     ShaderParam *params;
@@ -374,6 +378,10 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     out_modelo->shader = 0;        // Por defecto usa el shader global
     out_modelo->mvp_location = -1; // No cached yet
 
+    // Inicializar caché de uniform locations
+    out_modelo->time_location = -1;
+    out_modelo->texture_location = -1;
+
     // Inicializar sistema de parámetros de shader
     out_modelo->params = NULL;
     out_modelo->num_params = 0;
@@ -462,19 +470,17 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, Mode
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m->textura_id);
 
-        // Informar al shader que use la unidad 0
-        GLint tex_loc = glGetUniformLocation(current_program, "u_mask");
-        if (tex_loc != -1)
+        // OPTIMIZACIÓN: Usar caché en lugar de glGetUniformLocation
+        if (m->texture_location != -1)
         {
-            glUniform1i(tex_loc, 0);
+            glUniform1i(m->texture_location, 0);
         }
     }
 
-    // Actualizar tiempo para shaders que lo usen
-    GLint time_loc = glGetUniformLocation(current_program, "iTime");
-    if (time_loc != -1)
+    // OPTIMIZACIÓN: Usar caché en lugar de glGetUniformLocation
+    if (m->time_location != -1)
     {
-        glUniform1f(time_loc, (float)SDL_GetTicks() / 1000.0f);
+        glUniform1f(m->time_location, (float)SDL_GetTicks() / 1000.0f);
     }
 
     // Aplicar parámetros personalizados del modelo

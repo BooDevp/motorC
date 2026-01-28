@@ -40,10 +40,13 @@ static inline Modelo *escena_añadir_modelo(Escena *escena, Arena *arena, const 
     {
         nuevo->shader = shader_id;
 
-        // OPTIMIZACIÓN: Cachear la location del uniform MVP
+        // OPTIMIZACIÓN: Cachear uniform locations una sola vez
         if (shader_id != 0)
         {
             nuevo->mvp_location = glGetUniformLocation(shader_id, "uMVP");
+            nuevo->time_location = glGetUniformLocation(shader_id, "iTime");
+            nuevo->texture_location = glGetUniformLocation(shader_id, "u_mask");
+            
             if (nuevo->mvp_location == -1)
             {
                 debug_log("ADVERTENCIA: Shader custom (ID %u) no tiene uniform 'uMVP' o está optimizado.", shader_id);
