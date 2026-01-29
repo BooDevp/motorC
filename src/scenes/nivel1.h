@@ -14,7 +14,7 @@ static inline void cargar_escena_nivel_1(Arena *arena, Escena *escena, Camara *c
     if (m)
     {
         m->posicion[2] = 1.5f;
-        m->rotacion[1] = -45.f;
+        m->rotacion[1] = -45.0f;
         m->textura_id = cargar_textura("assets/textures/cigarro_mask.png");
 
         // Reservamos memoria para los datos del controlador en la Arena
@@ -27,7 +27,7 @@ static inline void cargar_escena_nivel_1(Arena *arena, Escena *escena, Camara *c
         m->handle_event = cigarro_handle_event;
 
         // Setup inicial del shader
-        modelo_set_vec3(m, "colorBrasa", 1.0f, 0.25f, 0.0f);
+        modelo_set_vec3(m, "colorBrasa", 181.0f / 255.0f, 55.0f / 255.0f, 38.0f / 255.0f);
     }
 }
 

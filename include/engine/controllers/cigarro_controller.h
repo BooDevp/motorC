@@ -13,9 +13,9 @@ typedef struct {
 static inline void cigarro_controller_init(CigarroController *ctrl) {
     ctrl->space_pressed = false;
     ctrl->intensidad_actual = 0.00f;
-    ctrl->velocidad_transicion = 1.0f;
+    ctrl->velocidad_transicion = 0.5f;
     ctrl->intensidad_min = 0.10f;
-    ctrl->intensidad_max = 2.5f;
+    ctrl->intensidad_max = 2.0f;
 }
 
 // Implementación del Input
