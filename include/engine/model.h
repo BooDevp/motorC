@@ -12,10 +12,16 @@
 #include <stddef.h>
 #include <math.h>
 #include <string.h>
-
 #include "shader.h"
 
 #define TO_RAD (SDL_PI_F / 180.0f)
+
+#define MAX_TEXTURAS_MODELO 4
+
+typedef struct {
+    GLuint id;
+    char nombre[32];
+} ModeloTextura;
 
 // Estructura de vértice "Interleaved" (todo junto para la GPU)
 typedef struct
@@ -66,11 +72,11 @@ typedef struct
     GLuint shader; // 0 = default, >0 = custom shader program
     GLint mvp_location;
 
-    GLuint textura_id;
+    ModeloTextura texturas[MAX_TEXTURAS_MODELO];
+    int num_texturas;
 
     // Caché de uniform locations para optimización
-    GLint time_location;
-    GLint texture_location;
+    GLint time_location;    
 
     // Parámetros dinámicos para el shader
     ShaderParam *params;
@@ -273,6 +279,20 @@ static void normalizar_modelo(Vertice *vertices, unsigned int num_vertices)
     }
 }
 
+/*
+* El modelo permite multitextura
+*/
+static inline void modelo_add_texture(Modelo *m, GLuint id, const char *nombre_shader) {
+    if (m->num_texturas < MAX_TEXTURAS_MODELO) {
+        m->texturas[m->num_texturas].id = id;
+        strncpy(m->texturas[m->num_texturas].nombre, nombre_shader, 31);
+        m->texturas[m->num_texturas].nombre[31] = '\0';
+        m->num_texturas++;
+    } else {
+        debug_log("ERROR: Se superó el límite de texturas en el modelo");
+    }
+}
+
 /**
  * Cargar modelo desde un archivo OBJ
  * Modificado para manejar correctamente normales, UVs y prevenir corrupción de memoria.
@@ -385,7 +405,7 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
 
     // Inicializar caché de uniform locations
     out_modelo->time_location = -1;
-    out_modelo->texture_location = -1;
+    out_modelo->num_texturas = 0;
 
     // Inicializar sistema de parámetros de shader
     out_modelo->params = NULL;
@@ -473,16 +493,20 @@ static inline void setup_matrices(GraphicsState *gs, int width, int height, Mode
         glUniformMatrix4fv(loc, 1, GL_FALSE, mvp);
     }
 
-    // Activar textura de máscara si el modelo la tiene
-    if (m->textura_id != 0)
+    // Recorremos todas las texturas que hayamos añadido al modelo
+    for (int i = 0; i < m->num_texturas; i++) 
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, m->textura_id);
-
-        // OPTIMIZACIÓN: Usar caché en lugar de glGetUniformLocation
-        if (m->texture_location != -1)
+        // Activamos la unidad de textura correspondiente (GL_TEXTURE0, GL_TEXTURE1, etc.)
+        glActiveTexture(GL_TEXTURE0 + i); 
+        glBindTexture(GL_TEXTURE_2D, m->texturas[i].id);
+        
+        // Buscamos el "sampler2D" en el shader usando el nombre guardado (ej: "u_mask")
+        GLint loc = glGetUniformLocation(current_program, m->texturas[i].nombre);
+        
+        if (loc != -1) 
         {
-            glUniform1i(m->texture_location, 0);
+            // Le decimos al shader que este sampler use la unidad 'i'
+            glUniform1i(loc, i);
         }
     }
 

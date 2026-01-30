@@ -15,7 +15,9 @@ static inline void cargar_escena_nivel_1(Arena *arena, Escena *escena, Camara *c
     {
         m->posicion[2] = 1.5f;
         m->rotacion[1] = -45.0f;
-        m->textura_id = cargar_textura("assets/textures/cigarro_mask.png");
+
+        GLuint tex_color = cargar_textura("assets/textures/cigarro_mask.png");
+        modelo_add_texture(m, tex_color, "u_mask");
 
         // Reservamos memoria para los datos del controlador en la Arena
         CigarroController *c_data = (CigarroController *)arena_push(arena, sizeof(CigarroController));

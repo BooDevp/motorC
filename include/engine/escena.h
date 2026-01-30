@@ -34,20 +34,27 @@ static inline Modelo *escena_añadir_modelo(Escena *escena, Arena *arena, const 
     }
 
     Modelo *nuevo = &escena->modelos[escena->cantidad];
+    
+    // 1. Cargamos la geometría del modelo
     if (cargar_modelo(nuevo, arena, ruta))
     {
         nuevo->shader = shader_id;
 
-        // OPTIMIZACIÓN: Cachear uniform locations una sola vez
+        // 2. Inicializamos el sistema de texturas múltiples
+        nuevo->num_texturas = 0; 
+
+        // 3. Cacheamos solo los uniforms globales (MVP y Tiempo)
         if (shader_id != 0)
         {
             nuevo->mvp_location = glGetUniformLocation(shader_id, "uMVP");
             nuevo->time_location = glGetUniformLocation(shader_id, "iTime");
-            nuevo->texture_location = glGetUniformLocation(shader_id, "u_mask");
+
+            // Ya no cacheamos "u_mask" aquí, porque ahora 
+            // usamos el array de texturas dinámico.
 
             if (nuevo->mvp_location == -1)
             {
-                debug_log("ADVERTENCIA: Shader custom (ID %u) no tiene uniform 'uMVP' o está optimizado.", shader_id);
+                debug_log("ADVERTENCIA: Shader %u no tiene 'uMVP'", shader_id);
             }
         }
 
