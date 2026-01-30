@@ -8,7 +8,7 @@ static inline void cargar_escena_nivel_1(Arena *arena, Escena *escena, Camara *c
     crear_escena(arena, NUM_MODELOS, escena);
     crear_camara_defecto(cam);
 
-    GLuint shaderCigarro = create_custom_shader_program("src/shaders/simple.vert", "src/shaders/cigarro.frag");
+    GLuint shaderCigarro = create_custom_shader_program("src/shaders/cigarro.vert", "src/shaders/cigarro.frag");
     Modelo *m = escena_añadir_modelo(escena, arena, "assets/models/Cigarro.obj", shaderCigarro);
 
     if (m)
@@ -16,8 +16,12 @@ static inline void cargar_escena_nivel_1(Arena *arena, Escena *escena, Camara *c
         m->posicion[2] = 1.5f;
         m->rotacion[1] = -45.0f;
 
-        GLuint tex_color = cargar_textura("assets/textures/cigarro_mask.png");
-        modelo_add_texture(m, tex_color, "u_mask");
+        
+        GLuint tex_color = cargar_textura("assets/textures/mapa_textura.png");
+        modelo_add_texture(m, tex_color, "u_texture");
+
+        GLuint tex_brillo = cargar_textura("assets/textures/cigarro_mask.png");
+        modelo_add_texture(m, tex_brillo, "u_mask");
 
         // Reservamos memoria para los datos del controlador en la Arena
         CigarroController *c_data = (CigarroController *)arena_push(arena, sizeof(CigarroController));

@@ -1,40 +1,38 @@
 #version 330 core
 
 in vec2 vUV;
-in vec3 vColor;
+in vec3 vColor; // Ya no lo necesitaremos tanto, pero lo dejamos por si acaso
 out vec4 FragColor;
 
-uniform sampler2D u_mask;
-uniform float iTime;
+// --- NUEVAS TEXTURAS ---
+uniform sampler2D u_mask;    // Mapa de calor (blanco y negro)
+uniform sampler2D u_texture; // Mapa de color (tu pintura de tabaco/papel)
 
+uniform float iTime;
 uniform float intensidadBrasa;
 uniform float velocidadLatido;
 uniform vec3 colorBrasa;
 
 void main() {
-    // 1. Leemos la máscara
-    float maskRaw = texture(u_mask, vec2(vUV.x, 1.0 - vUV.y)).r;
+    // Corregimos la orientación de la textura (flip Y)
+    vec2 uv = vec2(vUV.x, 1.0 - vUV.y);
 
-    // 2. LOGICA DE REALISMO:
-    // Usamos pow(mask, 2.0) para que los grises oscuros casi no brillen 
-    // y los blancos brillen mucho. Esto da un degradado mucho más natural.
+    // 1. LEEMOS EL COLOR DEL CIGARRO (La textura que pintaste)
+    vec3 colorTextura = texture(u_texture, uv).rgb;
+
+    // 2. LEEMOS LA MÁSCARA DE CALOR
+    float maskRaw = texture(u_mask, uv).r;
     float maskExplosiva = pow(maskRaw, 2.5); 
 
-    // 3. Color base (tabaco/papel)
-    vec3 colorBase = vColor;
-    if(length(colorBase) < 0.1) colorBase = vec3(0.7, 0.7, 0.7);
-
-    // 4. Brasa dinámica
-    // El latido ahora afecta más a las zonas muy blancas que a las grises
+    // 3. LÓGICA DE LA BRASA DINÁMICA
     float latido = 1.0 + 0.8 * sin(iTime * velocidadLatido);
     vec3 brasaDinamica = colorBrasa * latido * intensidadBrasa;
 
-    // 5. MEZCLA FINAL ADITIVA:
-    // mix() hace la transición, pero sumar un poco de colorBrasa extra 
-    // en las zonas blancas (maskRaw) da ese efecto de "luz emitida".
-    vec3 finalRGB = mix(colorBase, brasaDinamica, maskExplosiva);
+    // 4. MEZCLA FINAL: 
+    // Ahora usamos 'colorTextura' en lugar de 'vColor'
+    vec3 finalRGB = mix(colorTextura, brasaDinamica, maskExplosiva);
     
-    // Añadimos un pequeño "glow" extra solo donde es muy blanco
+    // Añadimos el "glow" extra en las zonas más blancas
     finalRGB += colorBrasa * maskExplosiva * 0.5 * latido;
 
     FragColor = vec4(finalRGB, 1.0);
