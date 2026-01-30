@@ -13,9 +13,9 @@ typedef struct {
 static inline void cigarro_controller_init(CigarroController *ctrl) {
     ctrl->space_pressed = false;
     ctrl->intensidad_actual = 0.00f;
-    ctrl->velocidad_transicion = 0.5f;
+    ctrl->velocidad_transicion = 0.30f;
     ctrl->intensidad_min = 0.10f;
-    ctrl->intensidad_max = 2.0f;
+    ctrl->intensidad_max = 1.5f;
 }
 
 // Implementación del Input
@@ -25,7 +25,7 @@ static inline void cigarro_handle_event(void* ctrl_ptr, SDL_Event* e) {
     if (e->type == SDL_EVENT_KEY_UP && e->key.key == SDLK_SPACE)   ctrl->space_pressed = false;
 }
 
-// Implementación del Update (El que ya usas)
+// Implementación del Update
 static inline void cigarro_update(void* ctrl_ptr, float dt, void* modelo_ptr) {
     CigarroController* ctrl = (CigarroController*)ctrl_ptr;
     Modelo* m = (Modelo*)modelo_ptr;

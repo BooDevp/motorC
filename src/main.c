@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
                 {
                     m->handle_event(m->controller, &event);
                 }
-            }            
+            }
 
             // Redimensionado de ventana
             if (event.type == SDL_EVENT_WINDOW_RESIZED)
