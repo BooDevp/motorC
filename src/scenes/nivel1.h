@@ -14,9 +14,8 @@ static inline void cargar_escena_nivel_1(Arena *arena, Escena *escena, Camara *c
     if (m)
     {
         m->posicion[2] = 1.5f;
-        m->rotacion[1] = -45.0f;
+        m->rotacion[1] = 90.0f;
 
-        
         GLuint tex_color = cargar_textura("assets/textures/mapa_textura.png");
         modelo_add_texture(m, tex_color, "u_texture");
 

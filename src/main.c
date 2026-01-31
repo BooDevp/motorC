@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
         }
         
         escena.modelos[0].rotacion[1] += 20.0f * delta_time;
-        escena.modelos[0].rotacion[0] += 60.0f * delta_time;
+        // escena.modelos[0].rotacion[0] += 60.0f * delta_time;
 
         // Volvemos al buffer de pantalla y dibujamos el Quad con el efecto
         if (app.postprocesado)
