@@ -1,10 +1,6 @@
 #ifndef POSTPROCESADO_H
 #define POSTPROCESADO_H
 
-#include "external/gl_headers.h"
-#include "shader.h"
-#include <stdio.h>
-
 #define POST_VERT_PATH "src/shaders/postprocesado/simple.vert"
 #define POST_FRAG_PATH "src/shaders/postprocesado/retro.frag"
 
