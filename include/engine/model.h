@@ -301,8 +301,11 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
 {
     debug_log("Cargando modelo: %s", ruta);
     fastObjMesh *mesh = fast_obj_read(ruta);
-    if (!mesh)
+    if (!mesh) 
+    {
+        debug_log("ERROR: No se pudo leer el archivo %s", ruta);
         return false;
+    }
 
     unsigned int total_render_vertices = 0;
     for (unsigned int f = 0; f < mesh->face_count; f++)
@@ -314,6 +317,7 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     Vertice *datos_gpu = (Vertice *)arena_push(mi_arena, bytes_necesarios);
     if (!datos_gpu)
     {
+        debug_log("ERROR: Memoria insuficiente en la Arena para el modelo");
         fast_obj_destroy(mesh);
         return false;
     }
@@ -324,7 +328,14 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     for (unsigned int f = 0; f < mesh->face_count; f++)
     {
         unsigned int vertices_en_esta_cara = mesh->face_vertices[f];
-        fastObjMaterial mat = mesh->materials[mesh->face_materials[f]];
+        
+        // Si el modelo no tiene material, usamos uno por defecto
+        fastObjMaterial mat = {0};
+        if (mesh->material_count > 0) {
+            mat = mesh->materials[mesh->face_materials[f]];
+        } else {
+            mat.Kd[0] = 1.0f; mat.Kd[1] = 1.0f; mat.Kd[2] = 1.0f; // Blanco por defecto
+        }
 
         for (unsigned int v = 1; v < vertices_en_esta_cara - 1; v++)
         {
@@ -332,24 +343,40 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
             for (int i = 0; i < 3; i++)
             {
                 fastObjIndex idx = mesh->indices[vert_offset + face_indices[i]];
+                
+                // --- POSICIÓN ---
                 datos_gpu[curr_v].x = mesh->positions[idx.p * 3 + 0];
                 datos_gpu[curr_v].y = mesh->positions[idx.p * 3 + 1];
                 datos_gpu[curr_v].z = mesh->positions[idx.p * 3 + 2];
 
-                // --- PARA LAS UVs ---
-                if (mesh->texcoord_count > 1)
+                
+                // UVs: Solo intentamos leer si el índice es válido y hay datos
+                if (mesh->texcoord_count > 1 && idx.t > 0)
                 {
                     datos_gpu[curr_v].u = mesh->texcoords[idx.t * 2 + 0];
                     datos_gpu[curr_v].v = mesh->texcoords[idx.t * 2 + 1];
                 }
+                else
+                {
+                    datos_gpu[curr_v].u = 0.0f;
+                    datos_gpu[curr_v].v = 0.0f;
+                }
 
-                if (mesh->normal_count > 1)
+                // --- NORMALES ---
+                if (mesh->normal_count > 1 && idx.n > 0)
                 {
                     datos_gpu[curr_v].nx = mesh->normals[idx.n * 3 + 0];
                     datos_gpu[curr_v].ny = mesh->normals[idx.n * 3 + 1];
                     datos_gpu[curr_v].nz = mesh->normals[idx.n * 3 + 2];
                 }
+                else
+                {
+                    datos_gpu[curr_v].nx = 0.0f;
+                    datos_gpu[curr_v].ny = 1.0f;
+                    datos_gpu[curr_v].nz = 0.0f;
+                }
 
+                // --- COLORES Y MATERIALES ---
                 datos_gpu[curr_v].r = mat.Kd[0];
                 datos_gpu[curr_v].g = mat.Kd[1];
                 datos_gpu[curr_v].b = mat.Kd[2];
@@ -357,6 +384,7 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
                 datos_gpu[curr_v].ksg = mat.Ks[1];
                 datos_gpu[curr_v].ksb = mat.Ks[2];
                 datos_gpu[curr_v].ns = mat.Ns;
+                
                 curr_v++;
             }
         }
@@ -365,13 +393,14 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
 
     normalizar_modelo(datos_gpu, total_render_vertices);
 
+    // Configuración de OpenGL (VAO/VBO)
     glGenVertexArrays(1, &out_modelo->vao);
     glGenBuffers(1, &out_modelo->vbo);
     glBindVertexArray(out_modelo->vao);
     glBindBuffer(GL_ARRAY_BUFFER, out_modelo->vbo);
     glBufferData(GL_ARRAY_BUFFER, bytes_necesarios, datos_gpu, GL_STATIC_DRAW);
 
-    // Atributos: Pos(0), Norm(1), UV(2), Color(3), Spec(4), Shininess(5)
+    // Atributos
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void *)offsetof(Vertice, x));
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void *)offsetof(Vertice, nx));
@@ -385,34 +414,17 @@ static inline bool cargar_modelo(Modelo *out_modelo, Arena *mi_arena, const char
     glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void *)offsetof(Vertice, ns));
     glEnableVertexAttribArray(5);
 
-    // Inicializacion del modelo
     out_modelo->num_vertices = total_render_vertices;
-
-    out_modelo->posicion[0] = 0.0f;
-    out_modelo->posicion[1] = 0.0f;
-    out_modelo->posicion[2] = 0.0f;
-
-    out_modelo->escala[0] = 1.0f;
-    out_modelo->escala[1] = 1.0f;
-    out_modelo->escala[2] = 1.0f;
-
-    out_modelo->rotacion[0] = 0.0f;
-    out_modelo->rotacion[1] = 0.0f;
-    out_modelo->rotacion[2] = 0.0f;
-
-    out_modelo->shader = 0;        // Por defecto usa el shader global
-    out_modelo->mvp_location = -1; // No cached yet
-
-    // Inicializar caché de uniform locations
+    out_modelo->posicion[0] = 0.0f; out_modelo->posicion[1] = 0.0f; out_modelo->posicion[2] = 0.0f;
+    out_modelo->escala[0] = 1.0f;   out_modelo->escala[1] = 1.0f;   out_modelo->escala[2] = 1.0f;
+    out_modelo->rotacion[0] = 0.0f; out_modelo->rotacion[1] = 0.0f; out_modelo->rotacion[2] = 0.0f;
+    out_modelo->shader = 0;
+    out_modelo->mvp_location = -1;
     out_modelo->time_location = -1;
     out_modelo->num_texturas = 0;
-
-    // Inicializar sistema de parámetros de shader
     out_modelo->params = NULL;
     out_modelo->num_params = 0;
     out_modelo->max_params = 0;
-
-    // Inicializar controller (opcional)
     out_modelo->controller = NULL;
     out_modelo->controller_update = NULL;
 
