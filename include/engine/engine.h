@@ -1,146 +1,91 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
-#define WINDOW_TITLE "Motor OpenGL 3.3"
+#include <SDL3/SDL.h>
+#include <stdio.h>
+#include <stdbool.h>
 
-#define CLEAR_COLOR_R (112.0f / 255.0f)
-#define CLEAR_COLOR_G (113.0f / 255.0f)
-#define CLEAR_COLOR_B (118.0f / 255.0f)
-#define CLEAR_COLOR_A 1.0f
+// Evitamos incluir sokol_gfx múltiples veces si incluimos engine.h en varios sitios
+#define SOKOL_GLCORE 
+#include "external/sokol_gfx.h"
 
-typedef struct
-{
-    GLuint program;
-    GLuint vao;
-    GLuint vbo;
-    GLint mvp_location;
-} GraphicsState;
+typedef struct {
+    SDL_Window* window;
+    SDL_GLContext gl_context;
+    sg_pass_action pass_action;
+    bool running;
+    int width;
+    int height;
+    
+    // Para el contador de FPS
+    uint64_t last_time;
+    int frames;
+} Engine;
 
-// ============================================================================
-// FUNCIONES DEL MOTOR
-// ============================================================================
+// Función para arrancar el motor
+static bool engine_init(Engine* en, const char* title, int w, int h) {
+    if (!SDL_Init(SDL_INIT_VIDEO)) return false;
 
-/**
- * Inicializa SDL y crea una ventana con contexto OpenGL
- */
-static inline bool init_sdl(SDL_Window **window)
-{
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
-    {
-        debug_log("ERROR SDL_Init: %s", SDL_GetError());
-        return false;
-    }
-    debug_log("SDL3 inicializado");
-
-    // Configurar atributos de OpenGL
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    // Crear ventana
-    *window = SDL_CreateWindow(WINDOW_TITLE,
-                               WINDOW_WIDTH,
-                               WINDOW_HEIGHT,
-                               SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    en->window = SDL_CreateWindow(title, w, h, SDL_WINDOW_OPENGL);
+    if (!en->window) return false;
 
-    if (*window == NULL)
-    {
-        debug_log("ERROR SDL_CreateWindow: %s", SDL_GetError());
-        SDL_Quit();
-        return false;
-    }
-    debug_log("Ventana creada: %dx%d", WINDOW_WIDTH, WINDOW_HEIGHT);
+    en->gl_context = SDL_GL_CreateContext(en->window);
+    SDL_GL_MakeCurrent(en->window, en->gl_context);
 
+    // VSync activado
+    SDL_GL_SetSwapInterval(1);
+
+    // Inicializar Sokol GFX
+    sg_setup(&(sg_desc){0});
+
+    // Color de limpieza por defecto (Gris PS1)
+    en->pass_action = (sg_pass_action) {
+        .colors[0] = { 
+            .load_action = SG_LOADACTION_CLEAR, 
+            .clear_value = { 0.1f, 0.1f, 0.1f, 1.0f } 
+        }
+    };
+
+    en->width = w;
+    en->height = h;
+    en->running = true;
+    en->last_time = SDL_GetTicks();
+    en->frames = 0;
+
+    printf("Motor iniciado: %dx%d | OpenGL 3.3 | VSync ON\n", w, h);
     return true;
 }
 
-/**
- * Inicializa OpenGL con configuraciones básicas
- */
-static inline bool init_opengl(SDL_Window *window, AppState *app)
-{
-    // Crear contexto OpenGL
-    SDL_GLContext gl_context = SDL_GL_CreateContext(window);
-    if (gl_context == NULL)
-    {
-        debug_log("ERROR SDL_GL_CreateContext: %s", SDL_GetError());
-        return false;
-    }
-    debug_log("Contexto OpenGL creado");
-
-    // Cargar funciones de OpenGL
-    if (!load_opengl_functions())
-    {
-        SDL_GL_DestroyContext(gl_context);
-        return false;
+// Función para actualizar eventos y contador de FPS
+static void engine_update(Engine* en) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_EVENT_QUIT) en->running = false;
     }
 
-    // Configurar viewport
-    int width, height;
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-    glViewport(0, 0, width, height);
+    SDL_GetWindowSizeInPixels(en->window, &en->width, &en->height);
 
-    // Configurar estado de OpenGL
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glClearDepth(1.0f);
-
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-
-    glClearColor(CLEAR_COLOR_R, CLEAR_COLOR_G, CLEAR_COLOR_B, CLEAR_COLOR_A);
-
-    debug_log("OpenGL configurado: Depth Test ON, Culling ON");
-
-    // VSYNC
-    if (app->vsync){
-        SDL_GL_SetSwapInterval(1);
-    } else {
-        SDL_GL_SetSwapInterval(0);
-    }    
-
-    return true;
+    // Contador de FPS
+    en->frames++;
+    uint64_t now = SDL_GetTicks();
+    if (now - en->last_time >= 1000) {
+        printf("FPS: %d\n", en->frames);
+        en->frames = 0;
+        en->last_time = now;
+    }
 }
 
-/**
- * Limpia recursos
- */
-static inline void cleanup(SDL_Window *window, GraphicsState *gs)
-{
-    debug_log("Limpiando recursos...");
-
-    if (gs->program != 0)
-    {
-        glDeleteProgram(gs->program);
-        debug_log("Programa eliminado");
-    }
-
-    if (gs->vao != 0)
-    {
-        glDeleteVertexArrays(1, &gs->vao);
-        debug_log("VAO eliminado");
-    }
-
-    if (gs->vbo != 0)
-    {
-        glDeleteBuffers(1, &gs->vbo);
-        debug_log("VBO eliminado");
-    }
-
-    if (window != NULL)
-    {
-        SDL_DestroyWindow(window);
-        debug_log("Ventana destruida");
-    }
-
+// Función para cerrar todo
+static void engine_cleanup(Engine* en) {
+    sg_shutdown();
+    SDL_GL_DestroyContext(en->gl_context);
+    SDL_DestroyWindow(en->window);
     SDL_Quit();
-    debug_log("SDL finalizado");
+    printf("Motor apagado correctamente.\n");
 }
 
 #endif
