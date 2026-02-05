@@ -1,7 +1,10 @@
-#define SOKOL_IMPL // Solo se define la implementación aquí
+#define SOKOL_IMPL
 #include "engine/engine.h"
 
-#define arena_size_mb 10
+#define ARENA_SIZE_MB 10
+#define ANCHO_PANTALLA 600
+#define ALTO_PANTALLA 800
+#define TITULO_VENTANA "PS1 Engine - Sokol"
 
 int main(int argc, char *argv[])
 {
@@ -11,7 +14,7 @@ int main(int argc, char *argv[])
     Engine engine = {0};
 
     // Arrancamos el motor
-    if (!engine_init(&engine, "PS1 Engine - Sokol", 800, 600, arena_size_mb))
+    if (!engine_init(&engine, TITULO_VENTANA, ALTO_PANTALLA, ANCHO_PANTALLA, ARENA_SIZE_MB))
     {
         return 1;
     }

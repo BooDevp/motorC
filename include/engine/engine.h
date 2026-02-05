@@ -76,7 +76,7 @@ static bool engine_init(Engine *en, const char *title, int w, int h, int mb)
     en->last_fps_time = SDL_GetTicks();
     en->frame_count = 0;
 
-    printf("ENGINE: Iniciado [%dx%d] | RAM Arena: %zu MB\n", w, h, ram_size / (1024 * 1024));
+    printf("ENGINE: Iniciado [%dx%d] | RAM Arena: %zu MB\n", w, h, mb);
     return true;
 }
 
