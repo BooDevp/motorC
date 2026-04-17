@@ -18,6 +18,7 @@
 #define ZOOM 1.0
 
 // Configuracion memoria
+#define MB(x) ((size_t)(x) * 1024 * 1024)
 #define ARENA_SIZE_MB 128
 
 // --- MAIN ---
@@ -28,11 +29,9 @@ int main(int argc, char *argv[])
 
     ui_init();
 
-    // 1. GESTIÓN DE MEMORIA
-    Arena arena_global;
-    arena_inicializar(&arena_global, 20 * 1024 * 1024);
+    // 1. GESTIÓN DE MEMORIA    
     Arena arena_escena;
-    arena_inicializar(&arena_escena, (ARENA_SIZE_MB - 20) * 1024 * 1024);
+    arena_inicializar(&arena_escena, MB(ARENA_SIZE_MB));
 
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -113,8 +112,7 @@ int main(int argc, char *argv[])
     // --- LIMPIEZA ---
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_Quit();
-    free(arena_global.base);
+    SDL_Quit();    
     free(arena_escena.base);
 
     return 0;
