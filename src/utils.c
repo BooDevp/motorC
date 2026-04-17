@@ -18,7 +18,7 @@ void calcular_frames(float *fps_actuales, Uint64 *frames_contados, char *texto_f
     }
 }
 
-// Función auxiliar para saltar espacios en blanco (como lo hacen los parsers reales)
+// Función auxiliar para saltar espacios en blanco
 char *trim_vacio(char *s)
 {
     while (isspace((unsigned char)*s))

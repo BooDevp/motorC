@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
     float escala = (VENTANA_ANCHO / 2.0f) * ZOOM;
     float angulo = 0.0f;
     float velocidad_giro = 20.0f;
-    float *z_buffer = inicializar_zbuffer(&arena_global, VENTANA_ANCHO, VENTANA_ALTO);
 
     // 3. VARIABLES DE FPS Y TIEMPO (Declaradas correctamente)
     Uint64 tiempo_ahora = SDL_GetTicks();
@@ -89,13 +88,10 @@ int main(int argc, char *argv[])
         SDL_SetRenderDrawColor(renderer, 15, 15, 15, 255);
         SDL_RenderClear(renderer);
 
-        // Reset de profundidad
-        limpiar_zbuffer(z_buffer, VENTANA_ANCHO, VENTANA_ALTO);
-
         if (modelo_actual != NULL)
         {
             // Distancia 3.0 para evitar problemas de clipping
-            pintar_modelo(modelo_actual, renderer, z_buffer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
+            pintar_modelo(modelo_actual, renderer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
         }
 
         // --- UI Y ESTADÍSTICAS ---
