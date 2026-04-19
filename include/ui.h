@@ -2,9 +2,13 @@
 #define UI_H
 
 #include <SDL3/SDL.h>
+#include "scene.h"
 #include "modelo.h"
 #include "gestion_memoria.h"
 #include "render.h"
+
+// Escenas
+#include "scenes/scene1.h"
 
 // Variables internas
 static bool g_hover_any_btn = false;
@@ -36,6 +40,17 @@ typedef struct
     const Uint64 COOLDOWN_BOTON;
     Arena *arena;
 } FunctionCargarModelo;
+
+typedef struct
+{
+    Escena **escena;
+    Uint64 *ultimo_clic;
+    const Uint64 COOLDOWN_BOTON;
+    int escena_id;
+    Arena *arena;
+    Modelo **modelos_globales;
+    int n_modelos_globales;
+} FunctionCargarEscena;
 
 // Acciones de los botones
 static bool is_mouse_hover(float mx, float my, Boton b) {
@@ -69,7 +84,7 @@ static void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params)
     SDL_FRect rect_btn = {b->x, b->y, b->w, b->h};
 
     // Dibujo el texto del boton
-    SDL_RenderFillRect(renderer, &rect_btn);
+    SDL_RenderRect(renderer, &rect_btn);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderDebugText(renderer, b->x + 10, b->y + 12, b->etiqueta);
 }
@@ -97,10 +112,20 @@ void accion_cambiar_vsync(void *datos)
     cambiar_vsync(d->renderer, d->bool_vsync, d->ultimo_clic, d->COOLDOWN_BOTON);
 }
 
-void accion_cargar_modelo(void *datos)
+void accion_cargar_escena(void *datos)
 {
-    FunctionCargarModelo *d = (FunctionCargarModelo *)datos;
-    cargar_modelo(d->modelo, d->ultimo_clic, d->COOLDOWN_BOTON, d->arena);
+    FunctionCargarEscena *d = (FunctionCargarEscena *)datos;
+    Uint64 tiempo_actual = SDL_GetTicks();
+    
+    if (tiempo_actual - *d->ultimo_clic > d->COOLDOWN_BOTON)
+    {        
+        switch(d->escena_id) {
+            case 1: 
+                *d->escena = cargar_escena_1(d->arena, d->modelos_globales, d->n_modelos_globales); 
+                break;            
+        }
+        *d->ultimo_clic = tiempo_actual;
+    }
 }
 
 #endif

@@ -7,7 +7,8 @@
 #include "utils.h"
 #include "ui.h"
 #include "gestion_memoria.h"
-#include "modelo.h"
+#include "modelos_id.h"
+#include "scene.h"
 
 // Configuraciones de pantalla
 #define VENTANA_ANCHO 800
@@ -19,7 +20,8 @@
 
 // Configuracion memoria
 #define MB(x) ((size_t)(x) * 1024 * 1024)
-#define ARENA_SIZE_MB 128
+#define ARENA_SIZE_MB_OBJECTS 40
+#define ARENA_SIZE_MB_SCENE 24
 
 // --- MAIN ---
 int main(int argc, char *argv[])
@@ -29,21 +31,34 @@ int main(int argc, char *argv[])
 
     ui_init();
 
-    // 1. GESTIÓN DE MEMORIA    
+    Arena arena_objects;
+    arena_inicializar(&arena_objects, MB(ARENA_SIZE_MB_OBJECTS), "OBJETOS");
+
+    // Cargar modelos globales
+    Modelo **modelos_globales = (Modelo **)arena_push(&arena_objects, sizeof(Modelo *) * TOTAL_MODELOS);
+    for (int i = 0; i < TOTAL_MODELOS; i++)
+    {
+        modelos_globales[i] = get_modelo_obj(&arena_objects, rutas_modelos_globales[i]);
+        if (modelos_globales[i])
+        {
+            calcular_centros(modelos_globales[i]->vertices, modelos_globales[i]->n_puntos, &modelos_globales[i]->cx, &modelos_globales[i]->cy, &modelos_globales[i]->cz);
+        }
+    }
+    arena_reporte(&arena_objects, "DESPUES DE CARGAR MODELOS");
+
     Arena arena_escena;
-    arena_inicializar(&arena_escena, MB(ARENA_SIZE_MB));
+    arena_inicializar(&arena_escena, MB(ARENA_SIZE_MB_SCENE), "ESCENA");
 
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);
+    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);    
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND); // Habilitar transparencia globalmente
 
-    // 2. ESTADO DEL MOTOR
-    Modelo *modelo_actual = NULL;
+    // ESTADO DEL MOTOR
+    Escena *escena_actual = NULL;
     float escala = (VENTANA_ANCHO / 2.0f) * ZOOM;
-    float angulo = 0.0f;
-    float velocidad_giro = 20.0f;
 
-    // 3. VARIABLES DE FPS Y TIEMPO (Declaradas correctamente)
+    // VARIABLES DE FPS Y TIEMPO
     Uint64 tiempo_ahora = SDL_GetTicks();
     Uint64 tiempo_ultimo = 0;
     Uint64 tiempo_anterior_fps = SDL_GetTicks();
@@ -52,7 +67,7 @@ int main(int argc, char *argv[])
     float dt = 0;
     char texto_fps[64] = "Iniciando...";
 
-    // 4. BOTONES Y UI
+    // BOTONES Y UI
     Uint64 ultimo_clic = 0;
     const Uint64 COOLDOWN_BOTON = 200;
     bool bool_vsync = true;
@@ -60,8 +75,8 @@ int main(int argc, char *argv[])
     FunctionCambioVsync params_vsync = {renderer, &bool_vsync, &ultimo_clic, COOLDOWN_BOTON};
     Boton btn_vsync = {20, 50, 140, 30, {100, 100, 100, 255}, "VSYNC ON/OFF", accion_cambiar_vsync, &params_vsync};
 
-    FunctionCargarModelo params_modelo = {&modelo_actual, &ultimo_clic, COOLDOWN_BOTON, &arena_escena};
-    Boton btn_cambio = {20, 90, 140, 30, {100, 100, 100, 255}, "CARGAR MODELO", accion_cargar_modelo, &params_modelo};
+    FunctionCargarEscena params_escena = {&escena_actual, &ultimo_clic, COOLDOWN_BOTON, 1, &arena_escena, modelos_globales, TOTAL_MODELOS};
+    Boton btn_cargar_escena = {20, 90, 140, 30, {100, 100, 100, 255}, "CARGAR ESCENA 1", accion_cargar_escena, &params_escena};
 
     SDL_SetRenderVSync(renderer, bool_vsync);
 
@@ -83,36 +98,39 @@ int main(int argc, char *argv[])
         tiempo_ahora = SDL_GetTicks();
         dt = (tiempo_ahora - tiempo_ultimo) / 1000.0f;
 
+        // --- LÓGICA (Actualizar posiciones y rotaciones) ---
+        if (escena_actual != NULL)
+        {
+            actualizar_escena(escena_actual, dt);
+        }
+
         // --- RENDERIZADO ---
         SDL_SetRenderDrawColor(renderer, 15, 15, 15, 255);
         SDL_RenderClear(renderer);
 
-        if (modelo_actual != NULL)
+        if (escena_actual != NULL)
         {
-            // Distancia 3.0 para evitar problemas de clipping
-            pintar_modelo(modelo_actual, renderer, angulo, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
+            pintar_escena(escena_actual, renderer, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
         }
 
         // --- UI Y ESTADÍSTICAS ---
         calcular_frames(&fps_actuales, &frames_contados, texto_fps, sizeof(texto_fps), &tiempo_anterior_fps);
-
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDebugText(renderer, 10, 10, texto_fps);
-
         ui_dibujar_boton(renderer, &btn_vsync, btn_vsync.params);
-        ui_dibujar_boton(renderer, &btn_cambio, btn_cambio.params);
-
+        ui_dibujar_boton(renderer, &btn_cargar_escena, btn_cargar_escena.params);
         SDL_RenderPresent(renderer);
 
         // --- LÓGICA ---
-        angulo += velocidad_giro * dt;
         gestionar_cursor_raton();
     }
 
     // --- LIMPIEZA ---
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_Quit();    
+    SDL_Quit();
+
+    free(arena_objects.base);
     free(arena_escena.base);
 
     return 0;
