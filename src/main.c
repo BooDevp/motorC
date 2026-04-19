@@ -22,6 +22,7 @@
 #define MB(x) ((size_t)(x) * 1024 * 1024)
 #define ARENA_SIZE_MB_OBJECTS 40
 #define ARENA_SIZE_MB_SCENE 24
+#define ARENA_SIZE_MB_UI 8
 
 // --- MAIN ---
 int main(int argc, char *argv[])
@@ -49,6 +50,9 @@ int main(int argc, char *argv[])
     Arena arena_escena;
     arena_inicializar(&arena_escena, MB(ARENA_SIZE_MB_SCENE), "ESCENA");
 
+    Arena arena_ui;
+    arena_inicializar(&arena_ui, MB(ARENA_SIZE_MB_UI), "UI");
+
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);    
@@ -67,18 +71,10 @@ int main(int argc, char *argv[])
     float dt = 0;
     char texto_fps[64] = "Iniciando...";
 
-    // BOTONES Y UI
-    Uint64 ultimo_clic = 0;
-    const Uint64 COOLDOWN_BOTON = 200;
-    bool bool_vsync = true;
+    UI ui;
+    ui_inicializar(&ui, &arena_ui, renderer, &escena_actual, &arena_escena, modelos_globales);    
 
-    FunctionCambioVsync params_vsync = {renderer, &bool_vsync, &ultimo_clic, COOLDOWN_BOTON};
-    Boton btn_vsync = {20, 50, 140, 30, {100, 100, 100, 255}, "VSYNC ON/OFF", accion_cambiar_vsync, &params_vsync};
-
-    FunctionCargarEscena params_escena = {&escena_actual, &ultimo_clic, COOLDOWN_BOTON, 1, &arena_escena, modelos_globales, TOTAL_MODELOS};
-    Boton btn_cargar_escena = {20, 90, 140, 30, {100, 100, 100, 255}, "CARGAR ESCENA 1", accion_cargar_escena, &params_escena};
-
-    SDL_SetRenderVSync(renderer, bool_vsync);
+    SDL_SetRenderVSync(renderer, ui.bool_vsync);
 
     // --- BUCLE PRINCIPAL ---
     bool corriendo = true;
@@ -86,7 +82,7 @@ int main(int argc, char *argv[])
 
     while (corriendo)
     {
-        ui_comenzar_frame();
+        ui_actualizar(&ui);
         while (SDL_PollEvent(&ev))
         {
             if (ev.type == SDL_EVENT_QUIT)
@@ -117,12 +113,8 @@ int main(int argc, char *argv[])
         calcular_frames(&fps_actuales, &frames_contados, texto_fps, sizeof(texto_fps), &tiempo_anterior_fps);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDebugText(renderer, 10, 10, texto_fps);
-        ui_dibujar_boton(renderer, &btn_vsync, btn_vsync.params);
-        ui_dibujar_boton(renderer, &btn_cargar_escena, btn_cargar_escena.params);
+        ui_renderizar(&ui, renderer);
         SDL_RenderPresent(renderer);
-
-        // --- LÓGICA ---
-        gestionar_cursor_raton();
     }
 
     // --- LIMPIEZA ---
@@ -130,6 +122,7 @@ int main(int argc, char *argv[])
     SDL_DestroyWindow(window);
     SDL_Quit();
 
+    free(arena_ui.base);
     free(arena_objects.base);
     free(arena_escena.base);
 
