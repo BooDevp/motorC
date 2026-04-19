@@ -8,16 +8,18 @@
 #include <ctype.h>
 #include <float.h>
 
-typedef struct {
+typedef struct
+{
     int *vertices;
     int n_vertices;
 } Cara;
 
-typedef struct {
+typedef struct
+{
     float *vertices;
-    int n_puntos;    
+    int n_puntos;
     Cara *caras;
-    int n_caras;    
+    int n_caras;
     float cx, cy, cz;
 } Modelo;
 
@@ -65,8 +67,7 @@ static void normalizacion_objeto_centrar(Modelo *f)
             if (d_sq > max_dist_sq)
                 max_dist_sq = d_sq;
         }
-
-        // Escalar para que el radio máximo sea 0.5 (ocupa 1 unidad de pantalla)
+        
         float max_dist = sqrtf(max_dist_sq);
         if (max_dist > 0)
         {
@@ -137,7 +138,6 @@ Modelo *get_modelo_obj(Arena *arena, const char *ruta)
                 token = strtok(NULL, " \t\r\n");
             }
 
-            // Almacenamos la cara como está
             f->caras[c_ptr].n_vertices = count;
             f->caras[c_ptr].vertices = (int *)arena_push(arena, count * sizeof(int));
             for (int i = 0; i < count; i++)
@@ -149,7 +149,7 @@ Modelo *get_modelo_obj(Arena *arena, const char *ruta)
     }
 
     fclose(archivo);
-    normalizacion_objeto_centrar(f);    
+    normalizacion_objeto_centrar(f);
     return f;
 }
 

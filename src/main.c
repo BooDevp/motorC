@@ -10,21 +10,18 @@
 #include "modelos_id.h"
 #include "scene.h"
 
-// Configuraciones de pantalla
+// Configuraciones de ventana base
 #define VENTANA_ANCHO 800
 #define VENTANA_ALTO 600
 
-// Configuraciones de la camara
-#define DISTANCIA_CAMARA 1.0
-#define ZOOM 1.0
+// Configuraciones de la cámara
+#define DISTANCIA_CAMARA 1.0f
+#define ZOOM 1.0f
 
-// Configuracion memoria
-#define MB(x) ((size_t)(x) * 1024 * 1024)
-#define ARENA_SIZE_MB_OBJECTS 40
-#define ARENA_SIZE_MB_SCENE 24
-#define ARENA_SIZE_MB_UI 8
+// Layout de la interfaz
+#define UI_MENU_RATIO 0.25f  // 25% de ancho para el menú lateral
+#define UI_BARRA_RATIO 0.05f // 10% de alto para la barra inferior
 
-// --- MAIN ---
 int main(int argc, char *argv[])
 {
     if (!SDL_Init(SDL_INIT_VIDEO))
@@ -32,49 +29,51 @@ int main(int argc, char *argv[])
 
     ui_init();
 
-    Arena arena_objects;
-    arena_inicializar(&arena_objects, MB(ARENA_SIZE_MB_OBJECTS), "OBJETOS");
+    // Inicialización de Memoria (Arenas)
+    Arena arena_objects, arena_escena, arena_ui;
+    init_app_memory(&arena_objects, &arena_escena, &arena_ui);
 
-    // Cargar modelos globales
+    // 2. Carga de recursos globales
     Modelo **modelos_globales = (Modelo **)arena_push(&arena_objects, sizeof(Modelo *) * TOTAL_MODELOS);
     for (int i = 0; i < TOTAL_MODELOS; i++)
     {
         modelos_globales[i] = get_modelo_obj(&arena_objects, rutas_modelos_globales[i]);
         if (modelos_globales[i])
         {
-            calcular_centros(modelos_globales[i]->vertices, modelos_globales[i]->n_puntos, &modelos_globales[i]->cx, &modelos_globales[i]->cy, &modelos_globales[i]->cz);
+            calcular_centros(modelos_globales[i]->vertices, modelos_globales[i]->n_puntos,
+                             &modelos_globales[i]->cx, &modelos_globales[i]->cy, &modelos_globales[i]->cz);
         }
     }
-    arena_reporte(&arena_objects, "DESPUES DE CARGAR MODELOS");
+    arena_reporte(&arena_objects, "RECURSOS GLOBALES CARGADOS");
 
-    Arena arena_escena;
-    arena_inicializar(&arena_escena, MB(ARENA_SIZE_MB_SCENE), "ESCENA");
-
-    Arena arena_ui;
-    arena_inicializar(&arena_ui, MB(ARENA_SIZE_MB_UI), "UI");
-
+    // 3. Ventana y Renderer
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);    
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND); // Habilitar transparencia globalmente
+    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // ESTADO DEL MOTOR
+    // Cálculo del Layout Dinámico
+    int barra_inferior_h = (int)(VENTANA_ALTO * UI_BARRA_RATIO);
+    int menu_lateral_w = (int)(VENTANA_ANCHO * UI_MENU_RATIO);    
+    int area_util_h = VENTANA_ALTO - barra_inferior_h;
+    int juego_w = VENTANA_ANCHO - menu_lateral_w;
+    int juego_h = area_util_h;
+    int juego_offset_x = menu_lateral_w;
+    int juego_offset_y = 0;
+    float escala_juego = (juego_w / 2.0f) * ZOOM;
+
+    // Inicialización de UI
     Escena *escena_actual = NULL;
-    float escala = (VENTANA_ANCHO / 2.0f) * ZOOM;
-
-    // VARIABLES DE FPS Y TIEMPO
-    Uint64 tiempo_ahora = SDL_GetTicks();
-    Uint64 tiempo_ultimo = 0;
-    Uint64 tiempo_anterior_fps = SDL_GetTicks();
-    Uint64 frames_contados = 0;
-    float fps_actuales = 0;
-    float dt = 0;
-    char texto_fps[64] = "Iniciando...";
-
     UI ui;
-    ui_inicializar(&ui, &arena_ui, renderer, &escena_actual, &arena_escena, modelos_globales);    
-
+    ui_inicializar(&ui, &arena_ui, renderer, &escena_actual, &arena_escena, modelos_globales);
     SDL_SetRenderVSync(renderer, ui.bool_vsync);
+
+    // Variables de tiempo
+    Uint64 tiempo_ahora = SDL_GetTicks();
+    Uint64 tiempo_ultimo, tiempo_anterior_fps = tiempo_ahora;
+    Uint64 frames_contados = 0;
+    float fps_actuales = 0, dt = 0;
+    char texto_fps[64] = "Iniciando...";
 
     // --- BUCLE PRINCIPAL ---
     bool corriendo = true;
@@ -89,30 +88,42 @@ int main(int argc, char *argv[])
                 corriendo = false;
         }
 
-        // Delta Time
         tiempo_ultimo = tiempo_ahora;
         tiempo_ahora = SDL_GetTicks();
         dt = (tiempo_ahora - tiempo_ultimo) / 1000.0f;
 
-        // --- LÓGICA (Actualizar posiciones y rotaciones) ---
         if (escena_actual != NULL)
-        {
             actualizar_escena(escena_actual, dt);
-        }
 
         // --- RENDERIZADO ---
-        SDL_SetRenderDrawColor(renderer, 15, 15, 15, 255);
+        SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.fondo.r, TEMA_DEFAULT.fondo.g, TEMA_DEFAULT.fondo.b, TEMA_DEFAULT.fondo.a);
         SDL_RenderClear(renderer);
 
         if (escena_actual != NULL)
         {
-            pintar_escena(escena_actual, renderer, DISTANCIA_CAMARA, VENTANA_ANCHO, VENTANA_ALTO, escala);
+            pintar_escena(escena_actual, renderer, DISTANCIA_CAMARA,
+                          juego_w, juego_h, escala_juego,
+                          juego_offset_x, juego_offset_y);
         }
 
-        // --- UI Y ESTADÍSTICAS ---
+        // --- MARCOS DIEGÉTICOS ---
+        SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.marco.r, TEMA_DEFAULT.marco.g, TEMA_DEFAULT.marco.b, TEMA_DEFAULT.marco.a);
+        
+        // Línea horizontal
+        SDL_RenderLine(renderer, 0, area_util_h, VENTANA_ANCHO, area_util_h);
+        // Línea vertical
+        SDL_RenderLine(renderer, menu_lateral_w, 0, menu_lateral_w, area_util_h);
+
+        // --- TEXTOS ---
         calcular_frames(&fps_actuales, &frames_contados, texto_fps, sizeof(texto_fps), &tiempo_anterior_fps);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, TEMA_DEFAULT.modelo.a);
         SDL_RenderDebugText(renderer, 10, 10, texto_fps);
+
+        char info_status[128];
+        SDL_snprintf(info_status, sizeof(info_status), "OS_CORE: ACTIVE | SYSTEM_VAL: %.2f EUR", 50000.0f);
+        // Texto centrado en la barra que ahora es completa
+        SDL_RenderDebugText(renderer, 20, VENTANA_ALTO - (barra_inferior_h / 2) - 4, info_status);
+
         ui_renderizar(&ui, renderer);
         SDL_RenderPresent(renderer);
     }
@@ -122,9 +133,9 @@ int main(int argc, char *argv[])
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    free(arena_ui.base);
     free(arena_objects.base);
     free(arena_escena.base);
+    free(arena_ui.base);
 
     return 0;
 }
