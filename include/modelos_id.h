@@ -7,9 +7,6 @@ typedef enum {
     TOTAL_MODELOS
 } ModeloID;
 
-static const char *rutas_modelos_globales[] = {
-    [MODELO_HANDPOPUS] = "./assets/models/Handpopus.obj",
-    [MODELO_CUBO]      = "./assets/models/Cubo.obj",    
-};
+extern const char *rutas_modelos_globales[TOTAL_MODELOS];
 
 #endif
