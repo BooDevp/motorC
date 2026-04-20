@@ -11,10 +11,18 @@
 // Escenas
 #include "scenes/scene1.h"
 
+// Layout de la interfaz
+#define UI_MENU_RATIO 0.25f  // 25% de ancho para el menú lateral
+#define UI_BARRA_RATIO 0.05f // 10% de alto para la barra inferior
+
 // Variables internas
 static bool g_hover_any_btn = false;
 static SDL_Cursor *cursor_mano = NULL;
 static SDL_Cursor *cursor_normal = NULL;
+
+Uint64 frames_contados = 0;
+float fps_actuales = 0, dt = 0;
+char texto_fps[64] = "Iniciando...";
 
 typedef struct
 {
@@ -36,14 +44,6 @@ typedef struct
 
 typedef struct
 {
-    Modelo **modelo;
-    Uint64 *ultimo_clic;
-    Uint64 COOLDOWN_BOTON;
-    Arena *arena;
-} FunctionCargarModelo;
-
-typedef struct
-{
     Escena **escena;
     Uint64 *ultimo_clic;
     Uint64 COOLDOWN_BOTON;
@@ -62,9 +62,22 @@ typedef struct
     bool bool_vsync;
     FunctionCambioVsync params_vsync;
     FunctionCargarEscena params_escena;
+    
+    int barra_inferior_h;
+    int menu_lateral_w;
+    int area_util_h;
+    int juego_w;
+    int juego_h;
+    int juego_offset_x;
+    int juego_offset_y;
+    float escala_juego;
+
+    int ventana_ancho;
+    int ventana_alto;
+
+    Uint64 *tiempo_anterior_fps;
 } UI;
 
-// Acciones de los botones
 static bool is_mouse_hover(float mx, float my, Boton b)
 {
     return (mx >= b.x && mx <= b.x + b.w &&
@@ -131,7 +144,6 @@ void ui_init()
         cursor_normal = SDL_GetDefaultCursor();
 }
 
-// Acciones de los botones
 void accion_cambiar_vsync(void *datos)
 {
     FunctionCambioVsync *d = (FunctionCambioVsync *)datos;
@@ -155,8 +167,25 @@ void accion_cargar_escena(void *datos)
     }
 }
 
-void ui_inicializar(UI *ui, Arena *arena_ui, SDL_Renderer *renderer, Escena **escena_actual, Arena *arena_escena, Modelo **modelos_globales)
+void ui_inicializar(UI *ui, Arena *arena_ui, SDL_Renderer *renderer, Escena **escena_actual, Arena *arena_escena, Modelo **modelos_globales, int ventana_ancho, int ventana_alto, float zoom, Uint64 *tiempo_anterior_fps)
 {
+
+    // Cálculo del Layout Dinámico
+    ui->barra_inferior_h = (int)(ventana_alto * UI_BARRA_RATIO);
+    ui->menu_lateral_w = (int)(ventana_ancho * UI_MENU_RATIO);
+    ui->area_util_h = ventana_alto - ui->barra_inferior_h;
+    ui->juego_w = ventana_ancho - ui->menu_lateral_w;
+    ui->juego_h = ui->area_util_h;
+    ui->juego_offset_x = ui->menu_lateral_w;
+    ui->juego_offset_y = 0;
+    ui->escala_juego = (ui->juego_w / 2.0f) * zoom;
+
+    // Valores de la ventana
+    ui->ventana_alto = ventana_alto;
+    ui->ventana_ancho = ventana_ancho;
+
+    ui->tiempo_anterior_fps = tiempo_anterior_fps;
+
     ui->COOLDOWN_BOTON = 200;
     ui->ultimo_clic = 0;
     ui->bool_vsync = true;
@@ -174,7 +203,7 @@ void ui_inicializar(UI *ui, Arena *arena_ui, SDL_Renderer *renderer, Escena **es
     ui->params_escena.modelos_globales = modelos_globales;
     ui->params_escena.n_modelos_globales = TOTAL_MODELOS;
 
-    ui->n_botones = 2;    
+    ui->n_botones = 2;
     ui->botones = (Boton *)arena_push(arena_ui, sizeof(Boton) * ui->n_botones);
 
     ui->botones[0] = (Boton){20, 50, 140, 30, {100, 100, 100, 255}, "VSYNC ON/OFF", accion_cambiar_vsync, &ui->params_vsync};
@@ -188,8 +217,34 @@ void ui_actualizar(UI *ui)
     ui_comenzar_frame();
 }
 
+void ui_pintar_marcos(UI *ui, SDL_Renderer *renderer)
+{
+    // --- MARCOS DIEGÉTICOS ---
+    SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.marco.r, TEMA_DEFAULT.marco.g, TEMA_DEFAULT.marco.b, TEMA_DEFAULT.marco.a);
+    // Línea horizontal
+    SDL_RenderLine(renderer, 0, ui->area_util_h, ui->ventana_ancho, ui->area_util_h);
+    // Línea vertical
+    SDL_RenderLine(renderer, ui->menu_lateral_w, 0, ui->menu_lateral_w, ui->area_util_h);
+}
+
+void ui_pintar_textos(UI *ui, SDL_Renderer *renderer)
+{
+    // --- TEXTOS ---
+    calcular_frames(&fps_actuales, &frames_contados, texto_fps, sizeof(texto_fps), ui->tiempo_anterior_fps);
+    SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, TEMA_DEFAULT.modelo.a);
+    SDL_RenderDebugText(renderer, 10, 10, texto_fps);
+
+    char info_status[128];
+    SDL_snprintf(info_status, sizeof(info_status), "OS_CORE: ACTIVE | SYSTEM_VAL: %.2f EUR", 50000.0f);
+    
+    // Texto centrado en la barra que ahora es completa
+    SDL_RenderDebugText(renderer, 20, ui->ventana_alto - (ui->barra_inferior_h / 2) - 4, info_status);
+}
+
 void ui_renderizar(UI *ui, SDL_Renderer *renderer)
 {
+    ui_pintar_marcos(ui, renderer);
+    ui_pintar_textos(ui, renderer);
     for (int i = 0; i < ui->n_botones; i++)
     {
         ui_dibujar_boton(renderer, &ui->botones[i], ui->botones[i].params);

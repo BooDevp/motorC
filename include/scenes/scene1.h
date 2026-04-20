@@ -7,7 +7,7 @@
 static Escena *cargar_escena_1(Arena *arena, Modelo **modelos_globales, int n_modelos)
 {
     Instancia mis_modelos[] = {
-        {.modelo_index = MODELO_CUBO,
+        {.modelo_index = MODELO_HANDPOPUS,
          .posicion = {0.0f, 0.0f, 0.0f},
          .rotacion = {0.0f, 0.0f, 0.0f},
          .vel_rotacion = {0.0f, 30.0f, 0.0f},
