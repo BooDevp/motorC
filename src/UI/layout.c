@@ -75,7 +75,7 @@ void ui_renderizar(UI *ui, SDL_Renderer *renderer)
     ui_pintar_textos(ui, renderer);
     for (int i = 0; i < ui->n_botones; i++)
     {
-        ui_dibujar_boton(renderer, &ui->botones[i], ui->botones[i].params);
+        ui_dibujar_botones_menu_lateral(renderer, &ui->botones[i], ui->botones[i].params);
     }
     gestionar_cursor_raton();
 }

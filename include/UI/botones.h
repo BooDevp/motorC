@@ -36,7 +36,7 @@ typedef struct {
 
 bool is_mouse_hover(float mx, float my, Boton b);
 void ui_comenzar_frame();
-void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params);
+void ui_dibujar_botones_menu_lateral(SDL_Renderer *renderer, Boton *b, void *params);
 void gestionar_cursor_raton();
 void ui_init();
 void accion_cambiar_vsync(void *datos);

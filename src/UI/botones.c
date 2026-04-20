@@ -16,13 +16,13 @@ void ui_comenzar_frame()
     g_hover_any_btn = false;
 }
 
-void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params)
+void ui_dibujar_botones_menu_lateral(SDL_Renderer *renderer, Boton *b, void *params)
 {
     float mx, my;
     uint32_t estado_raton = SDL_GetMouseState(&mx, &my);
     bool hover = is_mouse_hover(mx, my, *b);
 
-    // Colores basados en tu TEMA_DEFAULT
+    // Colores TEMA_DEFAULT
     SDL_Color color_eje = hover ? TEMA_DEFAULT.modelo : TEMA_DEFAULT.marco;
     Uint8 alpha_fondo = hover ? 40 : 15; // Brillo sutil al pasar el raton
 
@@ -37,12 +37,12 @@ void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params)
 
     SDL_FRect rect = {b->x, b->y, b->w, b->h};
 
-    // 1. FONDO SEMI-TRANSPARENTE (Efecto cristal/terminal)
+    // FONDO SEMI-TRANSPARENTE
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, color_eje.r, color_eje.g, color_eje.b, alpha_fondo);
     SDL_RenderFillRect(renderer, &rect);
 
-    // 2. MARCO TÁCTICO (Esquinas reforzadas)
+    // Esquinas reforzadas
     SDL_SetRenderDrawColor(renderer, color_eje.r, color_eje.g, color_eje.b, 255);
     
     // Dibujamos las 4 muescas de las esquinas (L-shapes)
@@ -60,13 +60,13 @@ void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params)
     SDL_RenderLine(renderer, rect.x + rect.w, rect.y + rect.h, rect.x + rect.w - len, rect.y + rect.h);
     SDL_RenderLine(renderer, rect.x + rect.w, rect.y + rect.h, rect.x + rect.w, rect.y + rect.h - len);
 
-    // 3. INDICADOR LATERAL (Solo si hay hover para dar feedback)
+    // INDICADOR LATERAL HOVER
     if (hover) {
         SDL_FRect indicador = {rect.x + 2, rect.y + 2, 3, rect.h - 4};
         SDL_RenderFillRect(renderer, &indicador);
     }
 
-    // 4. TEXTO (Color modelo para que resalte)
+    // TEXTO
     SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, 255);
     SDL_RenderDebugText(renderer, b->x + 15, b->y + (b->h / 2) - 4, b->etiqueta);
 }
