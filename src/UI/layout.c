@@ -8,6 +8,8 @@ char texto_fps[64] = "Iniciando...";
 
 void ui_inicializar(UI *ui, Arena *arena_ui, SDL_Renderer *renderer, Escena **escena_actual, Arena *arena_escena, Modelo **modelos_globales, int ventana_ancho, int ventana_alto, float zoom, Uint64 *tiempo_anterior_fps)
 {
+    ui_init();
+    
     ui->barra_inferior_h = (int)(ventana_alto * UI_BARRA_RATIO);
     ui->menu_lateral_w = (int)(ventana_ancho * UI_MENU_RATIO);
     ui->area_util_h = ventana_alto - ui->barra_inferior_h;
@@ -64,8 +66,10 @@ void ui_pintar_textos(UI *ui, SDL_Renderer *renderer)
     SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, TEMA_DEFAULT.modelo.a);
     SDL_RenderDebugText(renderer, 10, 10, texto_fps);
 
+    // En ui_pintar_textos
     char info_status[128];
-    SDL_snprintf(info_status, sizeof(info_status), "OS_CORE: ACTIVE | SYSTEM_VAL: %.2f EUR", 50000.0f);
+    const char *cursor = (SDL_GetTicks() / 500 % 2 == 0) ? ">" : " "; // Parpadeo
+    SDL_snprintf(info_status, sizeof(info_status), "OS_CORE: ACTIVE | SYSTEM_VAL: %.2f EUR %s", 50000.0f, cursor);
     SDL_RenderDebugText(renderer, 20, ui->ventana_alto - (ui->barra_inferior_h / 2) - 4, info_status);
 }
 

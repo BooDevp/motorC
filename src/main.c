@@ -21,9 +21,7 @@
 int main(int argc, char *argv[])
 {
     if (!SDL_Init(SDL_INIT_VIDEO))
-        return 1;
-
-    ui_init();
+        return 1;    
 
     // Inicialización de Memoria (Arenas)
     Arena arena_objects, arena_escena, arena_ui;
