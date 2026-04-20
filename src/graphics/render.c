@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "render.h"
+#include "graphics/render.h"
 
 void cambiar_vsync(SDL_Renderer *renderer, bool *habilitar, Uint64 *ultimo_clic, Uint64 cooldown)
 {

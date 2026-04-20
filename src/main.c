@@ -3,12 +3,12 @@
 #include <SDL3/SDL_main.h>
 
 // Mis librerías
-#include "math_3d.h"
-#include "utils.h"
+#include "core/math_3d.h"
+#include "core/utils.h"
 #include "ui.h"
-#include "gestion_memoria.h"
-#include "modelos_id.h"
-#include "scene.h"
+#include "core/gestion_memoria.h"
+#include "config/modelos_id.h"
+#include "graphics/scene.h"
 
 // Configuraciones de ventana base
 #define VENTANA_ANCHO 800
@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
     // Variables de tiempo
     Uint64 tiempo_ahora = SDL_GetTicks();
     Uint64 tiempo_ultimo, tiempo_anterior_fps = tiempo_ahora;
+    float dt = 0.0f;
 
     // Inicialización de UI
     Escena *escena_actual = NULL;

@@ -1,10 +1,10 @@
 #ifndef MODELO_H
 #define MODELO_H
 
-#include "gestion_memoria.h"
-#include "utils.h"
+#include "core/gestion_memoria.h"
+#include "core/utils.h"
 #include <SDL3/SDL.h>
-#include "math_3d.h"
+#include "core/math_3d.h"
 #include <ctype.h>
 #include <float.h>
 

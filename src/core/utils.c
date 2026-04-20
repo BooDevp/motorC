@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "utils.h"
+#include "core/utils.h"
 
 void calcular_frames(float *fps_actuales, Uint64 *frames_contados, char *texto_fps, int tam_buffer, Uint64 *tiempo_anterior)
 {

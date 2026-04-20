@@ -2,9 +2,9 @@
 #define SCENE_H
 
 #include "modelo.h"
-#include "gestion_memoria.h"
-#include "math_3d.h"
-#include "style.h"
+#include "core/gestion_memoria.h"
+#include "core/math_3d.h"
+#include "config/style.h"
 
 typedef struct
 {

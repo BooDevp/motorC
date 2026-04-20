@@ -1,7 +1,7 @@
 #ifndef UI_H
 #define UI_H
 
-#include "UI/botones.h"
-#include "UI/layout.h"
+#include "ui/botones.h"
+#include "ui/layout.h"
 
 #endif

@@ -1,5 +1,5 @@
-#define SDL_MAIN_HANDLED
-#include "UI/botones.h"
+﻿#define SDL_MAIN_HANDLED
+#include "ui/botones.h"
 
 bool g_hover_any_btn = false;
 SDL_Cursor *cursor_mano = NULL;
@@ -22,30 +22,53 @@ void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params)
     uint32_t estado_raton = SDL_GetMouseState(&mx, &my);
     bool hover = is_mouse_hover(mx, my, *b);
 
+    // Colores basados en tu TEMA_DEFAULT
+    SDL_Color color_eje = hover ? TEMA_DEFAULT.modelo : TEMA_DEFAULT.marco;
+    Uint8 alpha_fondo = hover ? 40 : 15; // Brillo sutil al pasar el raton
+
     if (hover)
     {
-        b->color = (SDL_Color){0, 200, 0, 255};
         g_hover_any_btn = true;
-
         if (estado_raton & SDL_BUTTON_LMASK)
         {
-            if (b->accion != NULL)
-                b->accion(params);
+            if (b->accion != NULL) b->accion(params);
         }
     }
-    else
-    {
-        b->color = (SDL_Color){100, 100, 100, 255};
+
+    SDL_FRect rect = {b->x, b->y, b->w, b->h};
+
+    // 1. FONDO SEMI-TRANSPARENTE (Efecto cristal/terminal)
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, color_eje.r, color_eje.g, color_eje.b, alpha_fondo);
+    SDL_RenderFillRect(renderer, &rect);
+
+    // 2. MARCO TÁCTICO (Esquinas reforzadas)
+    SDL_SetRenderDrawColor(renderer, color_eje.r, color_eje.g, color_eje.b, 255);
+    
+    // Dibujamos las 4 muescas de las esquinas (L-shapes)
+    float len = 8.0f; // Longitud de la muesca
+    // Arriba-Izquierda
+    SDL_RenderLine(renderer, rect.x, rect.y, rect.x + len, rect.y);
+    SDL_RenderLine(renderer, rect.x, rect.y, rect.x, rect.y + len);
+    // Arriba-Derecha
+    SDL_RenderLine(renderer, rect.x + rect.w, rect.y, rect.x + rect.w - len, rect.y);
+    SDL_RenderLine(renderer, rect.x + rect.w, rect.y, rect.x + rect.w, rect.y + len);
+    // Abajo-Izquierda
+    SDL_RenderLine(renderer, rect.x, rect.y + rect.h, rect.x + len, rect.y + rect.h);
+    SDL_RenderLine(renderer, rect.x, rect.y + rect.h, rect.x, rect.y + rect.h - len);
+    // Abajo-Derecha
+    SDL_RenderLine(renderer, rect.x + rect.w, rect.y + rect.h, rect.x + rect.w - len, rect.y + rect.h);
+    SDL_RenderLine(renderer, rect.x + rect.w, rect.y + rect.h, rect.x + rect.w, rect.y + rect.h - len);
+
+    // 3. INDICADOR LATERAL (Solo si hay hover para dar feedback)
+    if (hover) {
+        SDL_FRect indicador = {rect.x + 2, rect.y + 2, 3, rect.h - 4};
+        SDL_RenderFillRect(renderer, &indicador);
     }
 
-    // Dibujo del botón
-    SDL_SetRenderDrawColor(renderer, b->color.r, b->color.g, b->color.b, 255);
-    SDL_FRect rect_btn = {b->x, b->y, b->w, b->h};
-
-    // Dibujo el texto del boton
-    SDL_RenderRect(renderer, &rect_btn);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDebugText(renderer, b->x + 10, b->y + 12, b->etiqueta);
+    // 4. TEXTO (Color modelo para que resalte)
+    SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, 255);
+    SDL_RenderDebugText(renderer, b->x + 15, b->y + (b->h / 2) - 4, b->etiqueta);
 }
 
 void gestionar_cursor_raton()

@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "modelo.h"
+#include "graphics/modelo.h"
 #include <math.h>
 
 void normalizacion_objeto_centrar(Modelo *f)

@@ -2,34 +2,21 @@
 #define BOTONES_H
 
 #include <SDL3/SDL.h>
-#include <stdlib.h>
-#include "scene.h"
-#include "modelo.h"
-#include "gestion_memoria.h"
-#include "render.h"
-#include "scenes/scene1.h"
-#include "modelos_id.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include "graphics/render.h"
+#include "graphics/scene.h"
+#include "graphics/scenes/scene1.h"
+#include "config/modelos_id.h"
 
-// Structs
-typedef struct
-{
-    float x, y, w, h;
-    SDL_Color color;
-    const char *etiqueta;
-    void (*accion)(void *params);
-    void *params;
-} Boton;
-
-typedef struct
-{
+typedef struct {
     SDL_Renderer *renderer;
     bool *bool_vsync;
     Uint64 *ultimo_clic;
     Uint64 COOLDOWN_BOTON;
 } FunctionCambioVsync;
 
-typedef struct
-{
+typedef struct {
     Escena **escena;
     Uint64 *ultimo_clic;
     Uint64 COOLDOWN_BOTON;
@@ -39,7 +26,14 @@ typedef struct
     int n_modelos_globales;
 } FunctionCargarEscena;
 
-// Function declarations
+typedef struct {
+    float x, y, w, h;
+    SDL_Color color;
+    const char *etiqueta;
+    void (*accion)(void *);
+    void *params;
+} Boton;
+
 bool is_mouse_hover(float mx, float my, Boton b);
 void ui_comenzar_frame();
 void ui_dibujar_boton(SDL_Renderer *renderer, Boton *b, void *params);

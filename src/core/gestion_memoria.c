@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "gestion_memoria.h"
+#include "core/gestion_memoria.h"
 
 void arena_reporte(Arena *a, const char *contexto)
 {

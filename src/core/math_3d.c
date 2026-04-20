@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "math_3d.h"
+#include "core/math_3d.h"
 
 void rotar_x(float *y, float *z, float grados)
 {
