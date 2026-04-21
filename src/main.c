@@ -62,9 +62,8 @@ int main(int argc, char *argv[])
     // Vsync
     SDL_SetRenderVSync(renderer, true);
 
-    // Inicialización de UI
     Escena *escena_actual = NULL;
-    UI ui;
+    Layout layout;
     MenuLateral menu;
 
     Mundo mundo = {
@@ -72,7 +71,7 @@ int main(int argc, char *argv[])
         .arena_escena = &arena_escena,
         .modelos_globales = modelos_globales};
 
-    ui_inicializar(&ui, &arena_ui, renderer, mundo, ventana_info, &menu);
+    layout_inicializar(&layout, &arena_ui, renderer, mundo, ventana_info, &menu);
 
     // --- BUCLE PRINCIPAL ---
     bool corriendo = true;
@@ -80,7 +79,7 @@ int main(int argc, char *argv[])
 
     while (corriendo)
     {
-        ui_actualizar(&ui);
+        layout_actualizar(&layout);
         while (SDL_PollEvent(&ev))
         {
             if (ev.type == SDL_EVENT_QUIT)
@@ -91,21 +90,15 @@ int main(int argc, char *argv[])
         tiempo_ahora = SDL_GetTicks();
         dt = (tiempo_ahora - tiempo_ultimo) / 1000.0f;
 
-        if (escena_actual != NULL)
-            actualizar_escena(escena_actual, dt);
+        actualizar_escena(escena_actual, dt);
 
         // --- RENDERIZADO ---
         SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.fondo.r, TEMA_DEFAULT.fondo.g, TEMA_DEFAULT.fondo.b, TEMA_DEFAULT.fondo.a);
         SDL_RenderClear(renderer);
 
-        if (escena_actual != NULL)
-        {
-            pintar_escena(escena_actual, renderer, ventana_info.distancia_camara,
-                          ui.juego_w, ui.juego_h, ui.escala_juego,
-                          ui.juego_offset_x, ui.juego_offset_y);
-        }
+        pintar_escena(escena_actual, renderer, ventana_info.distancia_camara, &layout);
 
-        ui_renderizar(&ui, renderer);
+        layout_renderizar(&layout, renderer);
         menuLateral_renderizar(&menu, renderer);
         SDL_RenderPresent(renderer);
     }

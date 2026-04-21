@@ -35,7 +35,7 @@ void init_app_memory(Arena *arena_objects, Arena *arena_escena, Arena *arena_ui)
 {
     arena_inicializar(arena_objects, MB(40), "OBJETOS");
     arena_inicializar(arena_escena, MB(24), "ESCENA");
-    arena_inicializar(arena_ui, MB(8), "UI");
+    arena_inicializar(arena_ui, MB(8), "LAYOUT/UI");
 }
 
 void *arena_push(Arena *a, size_t size_pedido)

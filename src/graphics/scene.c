@@ -83,16 +83,16 @@ static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float dist
     }
 }
 
-void pintar_escena(Escena *escena, SDL_Renderer *renderer, float distancia_camara, int area_w, int area_h, float escala_global, int offset_x, int offset_y)
+void pintar_escena(Escena *escena, SDL_Renderer *renderer, float distancia_camara, Layout *layout)
 {
     if (!escena)
         return;
 
     // Definimos el rectángulo de recorte (ints)
-    SDL_Rect viewport_rect = {offset_x, offset_y, area_w, area_h};
+    SDL_Rect viewport_rect = {layout->juego_offset_x, layout->juego_offset_y, layout->juego_w, layout->juego_h};
 
     // Definimos el rectángulo de fondo (floats)
-    SDL_FRect fondo_rect = {(float)offset_x, (float)offset_y, (float)area_w, (float)area_h};
+    SDL_FRect fondo_rect = {(float)layout->juego_offset_x, (float)layout->juego_offset_y, (float)layout->juego_w, (float)layout->juego_h};
 
     // Activamos el recorte
     SDL_SetRenderClipRect(renderer, &viewport_rect);
@@ -108,7 +108,7 @@ void pintar_escena(Escena *escena, SDL_Renderer *renderer, float distancia_camar
     // Pintamos las instancias
     for (int i = 0; i < escena->n_instancias; i++)
     {
-        pintar_instancia(&escena->instancias[i], renderer, distancia_camara, area_w, area_h, escala_global, offset_x, offset_y);
+        pintar_instancia(&escena->instancias[i], renderer, distancia_camara, layout->juego_w, layout->juego_h, layout->escala_juego, layout->juego_offset_x, layout->juego_offset_y);
     }
 
     // Desactivamos el recorte
