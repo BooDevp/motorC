@@ -86,18 +86,12 @@ void gestionar_cursor_raton()
     }
 }
 
-void ui_init()
+void cursores_init()
 {
     if (!cursor_mano)
         cursor_mano = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
     if (!cursor_normal)
         cursor_normal = SDL_GetDefaultCursor();
-}
-
-void accion_cambiar_vsync(void *datos)
-{
-    FunctionCambioVsync *d = (FunctionCambioVsync *)datos;
-    cambiar_vsync(d->renderer, d->bool_vsync, d->ultimo_clic, d->COOLDOWN_BOTON);
 }
 
 void accion_cargar_escena(void *datos)

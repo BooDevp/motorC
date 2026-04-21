@@ -9,6 +9,7 @@
 #include "core/gestion_memoria.h"
 #include "config/modelos_id.h"
 #include "graphics/scene.h"
+#include "core/tipos.h"
 
 // Configuraciones de ventana base
 #define VENTANA_ANCHO 800
@@ -21,7 +22,7 @@
 int main(int argc, char *argv[])
 {
     if (!SDL_Init(SDL_INIT_VIDEO))
-        return 1;    
+        return 1;
 
     // Inicialización de Memoria (Arenas)
     Arena arena_objects, arena_escena, arena_ui;
@@ -40,22 +41,38 @@ int main(int argc, char *argv[])
     }
     arena_reporte(&arena_objects, "RECURSOS GLOBALES CARGADOS");
 
-    // Ventana y Renderer
-    SDL_Window *window;
-    SDL_Renderer *renderer;
-    SDL_CreateWindowAndRenderer("Motor 3D", VENTANA_ANCHO, VENTANA_ALTO, 0, &window, &renderer);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);    
-
     // Variables de tiempo
     Uint64 tiempo_ahora = SDL_GetTicks();
     Uint64 tiempo_ultimo, tiempo_anterior_fps = tiempo_ahora;
     float dt = 0.0f;
 
+    VentanaInfo ventana_info = {
+        .ancho = VENTANA_ANCHO,
+        .alto = VENTANA_ALTO,
+        .zoom = ZOOM,
+        .distancia_camara = DISTANCIA_CAMARA,
+        .tiempo_fps = &tiempo_anterior_fps};
+
+    // Ventana y Renderer
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_CreateWindowAndRenderer("Motor 3D", ventana_info.ancho, ventana_info.alto, 0, &window, &renderer);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Vsync
+    SDL_SetRenderVSync(renderer, true);
+
     // Inicialización de UI
     Escena *escena_actual = NULL;
     UI ui;
-    ui_inicializar(&ui, &arena_ui, renderer, &escena_actual, &arena_escena, modelos_globales, VENTANA_ANCHO, VENTANA_ALTO, ZOOM, &tiempo_anterior_fps);
-    SDL_SetRenderVSync(renderer, ui.bool_vsync);
+    MenuLateral menu;
+
+    Mundo mundo = {
+        .escena_actual = &escena_actual,
+        .arena_escena = &arena_escena,
+        .modelos_globales = modelos_globales};
+
+    ui_inicializar(&ui, &arena_ui, renderer, mundo, ventana_info, &menu);
 
     // --- BUCLE PRINCIPAL ---
     bool corriendo = true;
@@ -83,12 +100,13 @@ int main(int argc, char *argv[])
 
         if (escena_actual != NULL)
         {
-            pintar_escena(escena_actual, renderer, DISTANCIA_CAMARA,
+            pintar_escena(escena_actual, renderer, ventana_info.distancia_camara,
                           ui.juego_w, ui.juego_h, ui.escala_juego,
                           ui.juego_offset_x, ui.juego_offset_y);
         }
-        
+
         ui_renderizar(&ui, renderer);
+        menuLateral_renderizar(&menu, renderer);
         SDL_RenderPresent(renderer);
     }
 

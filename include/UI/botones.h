@@ -4,17 +4,9 @@
 #include <SDL3/SDL.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include "graphics/render.h"
 #include "graphics/scene.h"
 #include "graphics/scenes/scene1.h"
 #include "config/modelos_id.h"
-
-typedef struct {
-    SDL_Renderer *renderer;
-    bool *bool_vsync;
-    Uint64 *ultimo_clic;
-    Uint64 COOLDOWN_BOTON;
-} FunctionCambioVsync;
 
 typedef struct {
     Escena **escena;
@@ -38,8 +30,7 @@ bool is_mouse_hover(float mx, float my, Boton b);
 void ui_comenzar_frame();
 void ui_dibujar_botones_menu_lateral(SDL_Renderer *renderer, Boton *b, void *params);
 void gestionar_cursor_raton();
-void ui_init();
-void accion_cambiar_vsync(void *datos);
+void cursores_init();
 void accion_cargar_escena(void *datos);
 
 #endif
