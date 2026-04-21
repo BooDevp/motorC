@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -I./include -I./motor -Wall
 LDFLAGS = -L./lib -lSDL3 -lm # -mwindows
 OBJ = motor.exe
-SRC = $(wildcard src/*.c) $(wildcard src/*/*.c) $(wildcard src/*/*/*.c)
+SRC = $(shell find src -name "*.o" -prune -o -name "*.c" -print)
 
 # Regla principal
 all:
