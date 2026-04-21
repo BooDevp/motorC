@@ -15,9 +15,15 @@ typedef struct
     const char *nombre;
 } Arena;
 
+typedef struct
+{
+    Arena arena_objects;
+    Arena arena_escena;
+    Arena arena_ui;
+} GestionMemoria;
+
 void arena_reporte(Arena *a, const char *contexto);
-void arena_inicializar(Arena *a, size_t size_arena, const char *nombre_arena);
-void init_app_memory(Arena *arena_objects, Arena *arena_escena, Arena *arena_ui);
+void init_app_memory(GestionMemoria *gestion_memoria);
 void *arena_push(Arena *a, size_t size_pedido);
 void arena_reset(Arena *a);
 

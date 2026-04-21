@@ -1,5 +1,7 @@
 #define SDL_MAIN_HANDLED
-#include "graphics/scene.h"
+
+#include "graphics/escena.h"
+#include "graphics/layout.h"
 
 Escena *cargar_escena_desde_config(Arena *arena, Instancia *config, int num, Modelo **modelos_globales)
 {
@@ -8,6 +10,7 @@ Escena *cargar_escena_desde_config(Arena *arena, Instancia *config, int num, Mod
     Escena *escena = (Escena *)arena_push(arena, sizeof(Escena));
     escena->n_instancias = num;
     escena->instancias = (Instancia *)arena_push(arena, sizeof(Instancia) * num);
+    escena->catalogo_referencia = modelos_globales;
 
     for (int i = 0; i < num; i++)
     {
@@ -33,7 +36,7 @@ void actualizar_escena(Escena *escena, float dt)
     }
 }
 
-static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float distancia_camara, int area_w, int area_h, float escala_global, int offset_x, int offset_y)
+static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float distancia_camara, int area_w, int area_h, float escala_global)
 {
     if (!inst || !inst->modelo)
         return;
@@ -51,66 +54,65 @@ static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float dist
         for (int j = 0; j < cara.n_vertices; j++)
         {
             int idx = cara.vertices[j];
+            
+            // 1. ESCALADO LOCAL DEL MODELO
             float vx = f->vertices[idx * 3] * inst->escala;
             float vy = f->vertices[idx * 3 + 1] * inst->escala;
             float vz = f->vertices[idx * 3 + 2] * inst->escala;
 
+            // 2. ROTACIÓN
             rotar_x(&vy, &vz, inst->rotacion.x);
             rotar_y(&vx, &vz, inst->rotacion.y);
             rotar_z(&vx, &vy, inst->rotacion.z);
 
+            // 3. TRASLACIÓN (Posición en el mundo)
             vx += inst->posicion.x;
             vy += inst->posicion.y;
             vz += inst->posicion.z + distancia_camara;
 
+            // Clipping de seguridad (Z-near)
             if (vz < 0.1f)
             {
                 cara_fuera = true;
                 break;
             }
 
-            proyectar_a_pixel(vx, vy, vz, escala_global, escala_global, &px[j], &py[j], area_w, area_h, offset_x, offset_y);
+            // 4. PROYECCIÓN A PIXEL (Sin offsets)
+            // Ahora pasamos 0 en lugar de offset_x y offset_y
+            proyectar_a_pixel(vx, vy, vz, escala_global, escala_global, &px[j], &py[j], area_w, area_h, 0, 0);
         }
 
+        // 5. DIBUJO DE LÍNEAS
         if (!cara_fuera)
         {
             for (int j = 0; j < cara.n_vertices; j++)
             {
                 int next = (j + 1) % cara.n_vertices;
-                SDL_RenderLine(renderer, (int)px[j], (int)py[j], (int)px[next], (int)py[next]);
+                // Dibujamos directamente. El Viewport de SDL se encarga de mover 
+                // estas coordenadas a su sitio real en la ventana.
+                SDL_RenderLine(renderer, px[j], py[j], px[next], py[next]);
             }
         }
     }
 }
 
-void pintar_escena(Escena *escena, SDL_Renderer *renderer, float distancia_camara, Layout *layout)
+void pintar_escena(Escena *escena, SDL_Renderer *renderer, float dist, Layout *layout)
 {
-    if (!escena)
-        return;
+    if (!escena || !renderer) return;
 
-    // Definimos el rectángulo de recorte (ints)
-    SDL_Rect viewport_rect = {layout->juego_offset_x, layout->juego_offset_y, layout->juego_w, layout->juego_h};
+    // PREPARACIÓN: Me adueño de mi trozo de pantalla
+    SDL_SetRenderViewport(renderer, &layout->viewport_juego);
 
-    // Definimos el rectángulo de fondo (floats)
-    SDL_FRect fondo_rect = {(float)layout->juego_offset_x, (float)layout->juego_offset_y, (float)layout->juego_w, (float)layout->juego_h};
+    // DIBUJO: Pinto lo que necesito (fondo e instancias)
+    SDL_FRect fondo = {0.0f, 0.0f, (float)layout->juego_w, (float)layout->juego_h};
+    SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.fondo.r, TEMA_DEFAULT.fondo.g, TEMA_DEFAULT.fondo.b, 255);
+    SDL_RenderFillRect(renderer, &fondo);
 
-    // Activamos el recorte
-    SDL_SetRenderClipRect(renderer, &viewport_rect);
-
-    // Pintamos el fondo de la zona de juego
-    SDL_SetRenderDrawColor(renderer,
-                           TEMA_DEFAULT.fondo.r,
-                           TEMA_DEFAULT.fondo.g,
-                           TEMA_DEFAULT.fondo.b,
-                           TEMA_DEFAULT.fondo.a);
-    SDL_RenderFillRect(renderer, &fondo_rect);
-
-    // Pintamos las instancias
-    for (int i = 0; i < escena->n_instancias; i++)
-    {
-        pintar_instancia(&escena->instancias[i], renderer, distancia_camara, layout->juego_w, layout->juego_h, layout->escala_juego, layout->juego_offset_x, layout->juego_offset_y);
+    for (int i = 0; i < escena->n_instancias; i++) {
+        pintar_instancia(&escena->instancias[i], renderer, dist, layout->juego_w, layout->juego_h, layout->escala_proyeccion);
     }
 
-    // Desactivamos el recorte
-    SDL_SetRenderClipRect(renderer, NULL);
+    // LIMPIEZA: Devuelvo el control total al renderer para que el siguiente 
+    // que pinte (la UI) no se encuentre con el viewport movido.
+    SDL_SetRenderViewport(renderer, NULL);
 }

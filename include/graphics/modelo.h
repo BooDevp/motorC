@@ -2,7 +2,6 @@
 #define MODELO_H
 
 #include "core/gestion_memoria.h"
-#include "core/utils.h"
 #include <SDL3/SDL.h>
 #include "core/math_3d.h"
 #include <ctype.h>
@@ -23,9 +22,6 @@ typedef struct
     float cx, cy, cz;
 } Modelo;
 
-void normalizacion_objeto_centrar(Modelo *f);
-
-// Cargar modelo desde archivo .obj (Blender)
-extern Modelo *get_modelo_obj(Arena *arena, const char *ruta);
+void normalizacion_modelo_centrar(Modelo *f);
 
 #endif

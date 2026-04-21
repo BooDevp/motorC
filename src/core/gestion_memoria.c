@@ -1,5 +1,12 @@
 #define SDL_MAIN_HANDLED
+
 #include "core/gestion_memoria.h"
+#include "config/modelos_id.h"
+#include "graphics/modelo.h"
+
+#define ARENA_OBJECTS_MB 40
+#define ARENA_ESCENA_MB 24
+#define ARENA_UI_MB 8
 
 void arena_reporte(Arena *a, const char *contexto)
 {
@@ -14,7 +21,7 @@ void arena_reporte(Arena *a, const char *contexto)
     printf("--------------------------------------\n\n");
 }
 
-void arena_inicializar(Arena *a, size_t size_arena, const char *nombre_arena)
+static void arena_inicializar(Arena *a, size_t size_arena, const char *nombre_arena)
 {
     a->capacidad = size_arena;
     a->usado = 0;
@@ -29,13 +36,6 @@ void arena_inicializar(Arena *a, size_t size_arena, const char *nombre_arena)
     {
         arena_reporte(a, "INICIALIZADA");
     }
-}
-
-void init_app_memory(Arena *arena_objects, Arena *arena_escena, Arena *arena_ui)
-{
-    arena_inicializar(arena_objects, MB(40), "OBJETOS");
-    arena_inicializar(arena_escena, MB(24), "ESCENA");
-    arena_inicializar(arena_ui, MB(8), "LAYOUT/UI");
 }
 
 void *arena_push(Arena *a, size_t size_pedido)
@@ -57,4 +57,11 @@ void arena_reset(Arena *a)
 {
     a->usado = 0;
     arena_reporte(a, "RESET");
+}
+
+void init_app_memory(GestionMemoria *gestion_memoria)
+{
+    arena_inicializar(&gestion_memoria->arena_objects, MB(ARENA_OBJECTS_MB), "MODELOS");
+    arena_inicializar(&gestion_memoria->arena_escena, MB(ARENA_ESCENA_MB), "ESCENA");
+    arena_inicializar(&gestion_memoria->arena_ui, MB(ARENA_UI_MB), "UI");    
 }
