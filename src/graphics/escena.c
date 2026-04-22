@@ -1,5 +1,3 @@
-#define SDL_MAIN_HANDLED
-
 #include "graphics/escena.h"
 
 Escena *cargar_escena_desde_config(Arena *arena, Instancia *config, int num, Modelo **modelos_globales)

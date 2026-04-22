@@ -1,5 +1,3 @@
-#define SDL_MAIN_HANDLED
-
 #include "core/gestion_memoria.h"
 
 #define ARENA_OBJECTS_MB 40
@@ -57,9 +55,16 @@ void arena_reset(Arena *a)
     arena_reporte(a, "RESET");
 }
 
-void init_app_memory(GestionMemoria *gestion_memoria)
+void init_memoria(GestionMemoria *gestion_memoria)
 {
     arena_inicializar(&gestion_memoria->arena_objects, MB(ARENA_OBJECTS_MB), "MODELOS");
     arena_inicializar(&gestion_memoria->arena_escena, MB(ARENA_ESCENA_MB), "ESCENA");
-    arena_inicializar(&gestion_memoria->arena_ui, MB(ARENA_UI_MB), "UI");    
+    arena_inicializar(&gestion_memoria->arena_ui, MB(ARENA_UI_MB), "UI");
+}
+
+void liberar_memoria(GestionMemoria *gestion_memoria)
+{
+    free(gestion_memoria->arena_objects.base);
+    free(gestion_memoria->arena_escena.base);
+    free(gestion_memoria->arena_ui.base);
 }

@@ -1,5 +1,3 @@
-#define SDL_MAIN_HANDLED
-
 #include "graphics/loader_obj.h"
 
 static Modelo *get_modelo_obj(Arena *arena, const char *ruta)

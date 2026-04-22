@@ -1,4 +1,3 @@
-#define SDL_MAIN_HANDLED
 #include "graphics/escenas/escena1.h"
 
 Escena *cargar_escena_1(Arena *arena, Modelo **modelos_globales, int n_modelos)

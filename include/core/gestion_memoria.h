@@ -24,8 +24,9 @@ typedef struct
 } GestionMemoria;
 
 void arena_reporte(Arena *a, const char *contexto);
-void init_app_memory(GestionMemoria *gestion_memoria);
+void init_memoria(GestionMemoria *gestion_memoria);
 void *arena_push(Arena *a, size_t size_pedido);
 void arena_reset(Arena *a);
+void liberar_memoria(GestionMemoria *gestion_memoria);
 
 #endif

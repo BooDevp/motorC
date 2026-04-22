@@ -1,5 +1,3 @@
-#define SDL_MAIN_HANDLED
-
 #include "graphics/layout.h"
 
 #define RATIO_MENU_LATERAL 0.25f

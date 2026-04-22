@@ -1,4 +1,3 @@
-#define SDL_MAIN_HANDLED
 #include "core/math_3d.h"
 
 void rotar_x(float *y, float *z, float grados)

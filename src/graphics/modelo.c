@@ -1,4 +1,3 @@
-#define SDL_MAIN_HANDLED
 #include "graphics/modelo.h"
 #include <math.h>
 #include "config/modelos_id.h"
