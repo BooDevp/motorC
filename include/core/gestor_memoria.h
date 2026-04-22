@@ -1,10 +1,9 @@
-#ifndef GESTION_MEMORIA_H
-#define GESTION_MEMORIA_H
+#ifndef GESTOR_MEMORIA_H
+#define GESTOR_MEMORIA_H
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-
 
 #define MB(x) ((size_t)(x) * 1024 * 1024)
 
@@ -21,12 +20,12 @@ typedef struct
     Arena arena_objects;
     Arena arena_escena;
     Arena arena_ui;
-} GestionMemoria;
+} GestorMemoria;
 
 void arena_reporte(Arena *a, const char *contexto);
-void init_memoria(GestionMemoria *gestion_memoria);
+void init_memoria(GestorMemoria *gestor_memoria);
 void *arena_push(Arena *a, size_t size_pedido);
 void arena_reset(Arena *a);
-void liberar_memoria(GestionMemoria *gestion_memoria);
+void liberar_memoria(GestorMemoria *gestor_memoria);
 
 #endif

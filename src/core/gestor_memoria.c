@@ -1,4 +1,4 @@
-#include "core/gestion_memoria.h"
+#include "core/gestor_memoria.h"
 
 #define ARENA_OBJECTS_MB 40
 #define ARENA_ESCENA_MB 24
@@ -55,16 +55,16 @@ void arena_reset(Arena *a)
     arena_reporte(a, "RESET");
 }
 
-void init_memoria(GestionMemoria *gestion_memoria)
+void init_memoria(GestorMemoria *gestor_memoria)
 {
-    arena_inicializar(&gestion_memoria->arena_objects, MB(ARENA_OBJECTS_MB), "MODELOS");
-    arena_inicializar(&gestion_memoria->arena_escena, MB(ARENA_ESCENA_MB), "ESCENA");
-    arena_inicializar(&gestion_memoria->arena_ui, MB(ARENA_UI_MB), "UI");
+    arena_inicializar(&gestor_memoria->arena_objects, MB(ARENA_OBJECTS_MB), "MODELOS");
+    arena_inicializar(&gestor_memoria->arena_escena, MB(ARENA_ESCENA_MB), "ESCENA");
+    arena_inicializar(&gestor_memoria->arena_ui, MB(ARENA_UI_MB), "UI");
 }
 
-void liberar_memoria(GestionMemoria *gestion_memoria)
+void liberar_memoria(GestorMemoria *gestor_memoria)
 {
-    free(gestion_memoria->arena_objects.base);
-    free(gestion_memoria->arena_escena.base);
-    free(gestion_memoria->arena_ui.base);
+    free(gestor_memoria->arena_objects.base);
+    free(gestor_memoria->arena_escena.base);
+    free(gestor_memoria->arena_ui.base);
 }

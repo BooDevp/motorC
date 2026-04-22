@@ -1,7 +1,7 @@
 #define SDL_MAIN_HANDLED
 
 #include "core/engine.h"
-#include "core/gestion_memoria.h"
+#include "core/gestor_memoria.h"
 #include "graphics/layout.h"
 #include "graphics/escenas/escena1.h"
 #include "graphics/loader_obj.h"
@@ -21,15 +21,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    GestionMemoria gestion_memoria;
-    init_memoria(&gestion_memoria);
+    GestorMemoria gestor_memoria;
+    init_memoria(&gestor_memoria);
 
-    Modelo **modelos_globales = inicializar_catalogo_modelos(&gestion_memoria.arena_objects);
+    Modelo **modelos_globales = inicializar_catalogo_modelos(&gestor_memoria.arena_objects);
 
     Layout layout;
     calcular_layout(&layout, VENTANA_ANCHO, VENTANA_ALTO, ZOOM);
 
-    Escena *escena_actual = cargar_escena_1(&gestion_memoria.arena_escena, modelos_globales, TOTAL_MODELOS);
+    Escena *escena_actual = cargar_escena_1(&gestor_memoria.arena_escena, modelos_globales, TOTAL_MODELOS);
 
     while (motor.corriendo)
     {
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     }
 
     engine_limpiar(&motor);
-    liberar_memoria(&gestion_memoria);
+    liberar_memoria(&gestor_memoria);
 
     return 0;
 }

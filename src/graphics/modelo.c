@@ -1,6 +1,4 @@
 #include "graphics/modelo.h"
-#include <math.h>
-#include "config/modelos_id.h"
 
 void normalizacion_modelo_centrar(Modelo *f)
 {
