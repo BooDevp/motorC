@@ -18,6 +18,6 @@ typedef struct {
 } Layout;
 
 void calcular_layout(Layout *l, int win_w, int win_h, float zoom);
-void pintar_layout(SDL_Renderer *renderer, Layout *l);
+void pintar_layout(SDL_Renderer *renderer, Layout *l, int ventana_alto);
 
 #endif

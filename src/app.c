@@ -35,13 +35,9 @@ void app_run(App *app)
         // Lógica de la escena
         actualizar_escena(app->escena_actual, app->motor.dt);
 
-        // Renderizar escena y layout        
+        // Renderizar escena y layout
         pintar_escena(app->escena_actual, app->motor.renderer, app->camara.distancia, &app->layout);
-        pintar_layout(app->motor.renderer, &app->layout);
-
-        // Barra de estado
-        SDL_SetRenderDrawColor(app->motor.renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, 255);
-        SDL_RenderDebugText(app->motor.renderer, 20, (float)VENTANA_ALTO - (app->layout.barra_h / 2) - 4, "SISTEMA: LISTO | ASSET_VAL: 50.000 EUR");
+        pintar_layout(app->motor.renderer, &app->layout, VENTANA_ALTO);
 
         // Presentar todo
         SDL_RenderPresent(app->motor.renderer);

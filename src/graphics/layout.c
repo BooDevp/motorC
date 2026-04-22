@@ -23,7 +23,7 @@ void calcular_layout(Layout *l, int win_w, int win_h, float zoom)
     l->centro_juego.y = l->juego_h / 2.0f;
 }
 
-void pintar_layout(SDL_Renderer *renderer, Layout *layout)
+void pintar_layout(SDL_Renderer *renderer, Layout *layout, int ventana_alto)
 {
     SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, 255);
 
@@ -33,4 +33,7 @@ void pintar_layout(SDL_Renderer *renderer, Layout *layout)
     // Línea horizontal (Separa juego de barra inferior)
     float ancho_total = (float)(layout->menu_w + layout->juego_w);
     SDL_RenderLine(renderer, 0, (float)layout->area_util_h, ancho_total, (float)layout->area_util_h);
+    
+    SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, 255);
+    SDL_RenderDebugText(renderer, 20, (float)ventana_alto - (layout->barra_h / 2) - 4, "SISTEMA: LISTO | ASSET_VAL: 50.000 EUR");
 }
