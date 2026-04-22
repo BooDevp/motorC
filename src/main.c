@@ -5,21 +5,23 @@
 #include "graphics/layout.h"
 #include "graphics/escenas/escena1.h"
 #include "graphics/loader_obj.h"
+#include "graphics/camara.h"
 
 #define VENTANA_ANCHO 800
 #define VENTANA_ALTO 600
-
-#define DISTANCIA_CAMARA 1.0f
-#define ZOOM 1.0f
+#define TITULO_VENTANA "Motor 3D"
 
 int main(int argc, char *argv[])
 {
 
     Engine motor;
-    if (!engine_init(&motor, "Motor 3D", VENTANA_ANCHO, VENTANA_ALTO))
+    if (!engine_init(&motor, TITULO_VENTANA, VENTANA_ANCHO, VENTANA_ALTO))
     {
         return 1;
     }
+
+    Camara camara;
+    inicializar_camara(&camara);
 
     GestorMemoria gestor_memoria;
     init_memoria(&gestor_memoria);
@@ -27,7 +29,7 @@ int main(int argc, char *argv[])
     Modelo **modelos_globales = inicializar_catalogo_modelos(&gestor_memoria.arena_objects);
 
     Layout layout;
-    calcular_layout(&layout, VENTANA_ANCHO, VENTANA_ALTO, ZOOM);
+    calcular_layout(&layout, VENTANA_ANCHO, VENTANA_ALTO, camara.zoom);
 
     Escena *escena_actual = cargar_escena_1(&gestor_memoria.arena_escena, modelos_globales, TOTAL_MODELOS);
 
@@ -41,7 +43,7 @@ int main(int argc, char *argv[])
         SDL_SetRenderDrawColor(motor.renderer, TEMA_DEFAULT.fondo.r, TEMA_DEFAULT.fondo.g, TEMA_DEFAULT.fondo.b, 255);
         SDL_RenderClear(motor.renderer);
 
-        pintar_escena(escena_actual, motor.renderer, DISTANCIA_CAMARA, &layout);
+        pintar_escena(escena_actual, motor.renderer, camara.distancia, &layout);
         pintar_layout(motor.renderer, &layout);
 
         // Textos (Usando el renderer del motor)
