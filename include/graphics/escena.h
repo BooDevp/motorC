@@ -3,7 +3,6 @@
 
 #include "modelo.h"
 #include "core/math_3d.h"
-#include "config/style.h"
 #include "graphics/layout.h"
 
 typedef struct

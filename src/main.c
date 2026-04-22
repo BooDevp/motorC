@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
         pintar_layout(renderer, &layout);
 
-        // Textos de información
+        // Barra inferior
         SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, 255);
         SDL_RenderDebugText(renderer, (float)layout.menu_w + 20, 20, "VIEWPORT: ESTATICO");
         SDL_RenderDebugText(renderer, 20, (float)VENTANA_ALTO - (layout.barra_h / 2) - 4, "SISTEMA: LISTO | ASSET_VAL: 50.000 EUR");

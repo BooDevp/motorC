@@ -2,6 +2,7 @@
 #define LAYOUT_H
 
 #include <SDL3/SDL.h>
+#include "config/style.h"
 
 typedef struct {
     int menu_w;      // Ancho del panel izquierdo
@@ -11,8 +12,8 @@ typedef struct {
     int juego_h;     // Alto real del lienzo 3D
     SDL_Rect viewport_juego; // El rectángulo ya listo para SDL
 
-    float escala_proyeccion; // El factor base según la resolución
-    float zoom_usuario;      // Para que puedas alejar/acercar la cámara
+    float escala_proyeccion; // Escala según la resolución
+    float zoom;      // alejar/acercar la cámara
     SDL_FPoint centro_juego; // El punto central del viewport (x, y)
 } Layout;
 

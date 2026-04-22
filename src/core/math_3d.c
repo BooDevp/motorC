@@ -31,15 +31,14 @@ void rotar_z(float *x, float *y, float grados)
     *y = y_nueva;
 }
 
-void proyectar_a_pixel(float x, float y, float z, float escala_x, float escala_y, float *px, float *py, int area_ancho, int area_alto, int offset_x, int offset_y)
+void proyectar_a_pixel(float x, float y, float z, float escala_x, float escala_y, float *px, float *py, int area_ancho, int area_alto)
 {
     if (z == 0) z = 0.001f; // Evitar división por cero
     float x_2d = x / z;
     float y_2d = y / z;
-
-    // El "centro" ahora es (0,0) y se escala y se traslada al centro del área de renderizado
-    *px = (x_2d * escala_x) + (area_ancho / 2.0f) + offset_x;
-    *py = (-y_2d * escala_y) + (area_alto / 2.0f) + offset_y;
+    
+    *px = (x_2d * escala_x) + (area_ancho / 2.0f);
+    *py = (-y_2d * escala_y) + (area_alto / 2.0f);
 }
 
 void calcular_centros(float *vertices, int total_puntos, float *cx, float *cy, float *cz)

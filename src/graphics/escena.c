@@ -1,7 +1,6 @@
 #define SDL_MAIN_HANDLED
 
 #include "graphics/escena.h"
-#include "graphics/layout.h"
 
 Escena *cargar_escena_desde_config(Arena *arena, Instancia *config, int num, Modelo **modelos_globales)
 {
@@ -36,7 +35,7 @@ void actualizar_escena(Escena *escena, float dt)
     }
 }
 
-static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float distancia_camara, int area_w, int area_h, float escala_global)
+static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float distancia_camara, Layout *layout)
 {
     if (!inst || !inst->modelo)
         return;
@@ -54,7 +53,7 @@ static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float dist
         for (int j = 0; j < cara.n_vertices; j++)
         {
             int idx = cara.vertices[j];
-            
+
             // 1. ESCALADO LOCAL DEL MODELO
             float vx = f->vertices[idx * 3] * inst->escala;
             float vy = f->vertices[idx * 3 + 1] * inst->escala;
@@ -77,9 +76,7 @@ static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float dist
                 break;
             }
 
-            // 4. PROYECCIÓN A PIXEL (Sin offsets)
-            // Ahora pasamos 0 en lugar de offset_x y offset_y
-            proyectar_a_pixel(vx, vy, vz, escala_global, escala_global, &px[j], &py[j], area_w, area_h, 0, 0);
+            proyectar_a_pixel(vx, vy, vz, layout->escala_proyeccion, layout->escala_proyeccion, &px[j], &py[j], layout->juego_w, layout->juego_h);
         }
 
         // 5. DIBUJO DE LÍNEAS
@@ -88,7 +85,7 @@ static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float dist
             for (int j = 0; j < cara.n_vertices; j++)
             {
                 int next = (j + 1) % cara.n_vertices;
-                // Dibujamos directamente. El Viewport de SDL se encarga de mover 
+                // Dibujamos directamente. El Viewport de SDL se encarga de mover
                 // estas coordenadas a su sitio real en la ventana.
                 SDL_RenderLine(renderer, px[j], py[j], px[next], py[next]);
             }
@@ -98,7 +95,8 @@ static void pintar_instancia(Instancia *inst, SDL_Renderer *renderer, float dist
 
 void pintar_escena(Escena *escena, SDL_Renderer *renderer, float dist, Layout *layout)
 {
-    if (!escena || !renderer) return;
+    if (!escena || !renderer)
+        return;
 
     // PREPARACIÓN: Me adueño de mi trozo de pantalla
     SDL_SetRenderViewport(renderer, &layout->viewport_juego);
@@ -108,11 +106,12 @@ void pintar_escena(Escena *escena, SDL_Renderer *renderer, float dist, Layout *l
     SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.fondo.r, TEMA_DEFAULT.fondo.g, TEMA_DEFAULT.fondo.b, 255);
     SDL_RenderFillRect(renderer, &fondo);
 
-    for (int i = 0; i < escena->n_instancias; i++) {
-        pintar_instancia(&escena->instancias[i], renderer, dist, layout->juego_w, layout->juego_h, layout->escala_proyeccion);
+    for (int i = 0; i < escena->n_instancias; i++)
+    {
+        pintar_instancia(&escena->instancias[i], renderer, dist, layout);
     }
 
-    // LIMPIEZA: Devuelvo el control total al renderer para que el siguiente 
+    // LIMPIEZA: Devuelvo el control total al renderer para que el siguiente
     // que pinte (la UI) no se encuentre con el viewport movido.
     SDL_SetRenderViewport(renderer, NULL);
 }

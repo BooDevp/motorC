@@ -1,8 +1,6 @@
 #define SDL_MAIN_HANDLED
 
 #include "core/gestion_memoria.h"
-#include "config/modelos_id.h"
-#include "graphics/modelo.h"
 
 #define ARENA_OBJECTS_MB 40
 #define ARENA_ESCENA_MB 24

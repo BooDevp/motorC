@@ -1,7 +1,6 @@
 #define SDL_MAIN_HANDLED
 
 #include "graphics/layout.h"
-#include "config/style.h"
 
 #define RATIO_MENU_LATERAL 0.25f
 #define RATIO_BARRA_INFERIOR 0.15f
@@ -20,11 +19,8 @@ void calcular_layout(Layout *l, int win_w, int win_h, float zoom)
     l->viewport_juego.w = l->juego_w;
     l->viewport_juego.h = l->juego_h;
 
-    l->zoom_usuario = zoom;
-
-    // La escala base: usamos el ancho del juego como referencia
-    // Si juego_w es 800, la escala base es 400 * zoom.
-    l->escala_proyeccion = (l->juego_w / 2.0f) * l->zoom_usuario;
+    l->zoom = zoom;
+    l->escala_proyeccion = (l->juego_w / 2.0f) * l->zoom;
 
     // Guardamos el centro para no calcularlo cada frame al dibujar
     l->centro_juego.x = l->juego_w / 2.0f;
