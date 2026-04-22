@@ -11,7 +11,6 @@ void calcular_layout(Layout *l, int win_w, int win_h, float zoom)
     l->juego_w = win_w - l->menu_w;
     l->juego_h = l->area_util_h;
 
-    // Ya dejamos el SDL_Rect preparado para no crearlo en cada frame
     l->viewport_juego.x = l->menu_w;
     l->viewport_juego.y = 0;
     l->viewport_juego.w = l->juego_w;
@@ -20,7 +19,6 @@ void calcular_layout(Layout *l, int win_w, int win_h, float zoom)
     l->zoom = zoom;
     l->escala_proyeccion = (l->juego_w / 2.0f) * l->zoom;
 
-    // Guardamos el centro para no calcularlo cada frame al dibujar
     l->centro_juego.x = l->juego_w / 2.0f;
     l->centro_juego.y = l->juego_h / 2.0f;
 }

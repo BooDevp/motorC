@@ -35,9 +35,7 @@ void app_run(App *app)
         // Lógica de la escena
         actualizar_escena(app->escena_actual, app->motor.dt);
 
-        // Renderizar escena y layout
-        SDL_SetRenderDrawColor(app->motor.renderer, TEMA_DEFAULT.fondo.r, TEMA_DEFAULT.fondo.g, TEMA_DEFAULT.fondo.b, 255);
-        SDL_RenderClear(app->motor.renderer);
+        // Renderizar escena y layout        
         pintar_escena(app->escena_actual, app->motor.renderer, app->camara.distancia, &app->layout);
         pintar_layout(app->motor.renderer, &app->layout);
 
