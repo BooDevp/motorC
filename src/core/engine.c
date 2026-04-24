@@ -21,18 +21,6 @@ bool engine_init(Engine *e, const char *titulo, int w, int h)
     return true;
 }
 
-void engine_actualizar_eventos(Engine *e)
-{
-    SDL_Event ev;
-    while (SDL_PollEvent(&ev))
-    {
-        if (eventos(&ev) == false)
-        {
-            e->corriendo = false;
-        }
-    }
-}
-
 void engine_actualizar_dt(Engine *e)
 {
     e->tiempo_ultimo = e->tiempo_ahora;

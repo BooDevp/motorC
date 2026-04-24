@@ -6,6 +6,7 @@
 #include "graphics/layout.h"
 #include "graphics/camara.h"
 #include "graphics/escena.h"
+#include "ui/menu_lateral.h"
 
 typedef struct
 {
@@ -13,8 +14,11 @@ typedef struct
     GestorMemoria memoria;
     Camara camara;
     Layout layout;
+    MenuLateral menu;
     Escena *escena_actual;
     Modelo **catalogo;
+    SDL_Cursor *cursor_mano;
+    SDL_Cursor *cursor_flecha;
 } App;
 
 bool app_init(App *app);

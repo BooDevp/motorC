@@ -34,6 +34,9 @@ void pintar_layout(SDL_Renderer *renderer, Layout *layout, int ventana_alto)
     float ancho_total = (float)(layout->menu_w + layout->juego_w);
     SDL_RenderLine(renderer, 0, (float)layout->area_util_h, ancho_total, (float)layout->area_util_h);
     
+    char buffer[128];
+    const char *cursor = (SDL_GetTicks() / 500 % 2 == 0) ? ">" : " ";
+    SDL_snprintf(buffer, sizeof(buffer), "SISTEMA: LISTO | ASSET_VAL: 50.000 EUR %s", cursor);
+    SDL_RenderDebugText(renderer, 20, (float)ventana_alto - (layout->barra_h / 2) - 4, buffer);
     SDL_SetRenderDrawColor(renderer, TEMA_DEFAULT.modelo.r, TEMA_DEFAULT.modelo.g, TEMA_DEFAULT.modelo.b, 255);
-    SDL_RenderDebugText(renderer, 20, (float)ventana_alto - (layout->barra_h / 2) - 4, "SISTEMA: LISTO | ASSET_VAL: 50.000 EUR");
 }
